@@ -1,11 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import {
-  Zap,
-  Download,
-  Loader,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
+import { Zap, Download, Loader, CheckCircle, AlertCircle } from "lucide-react";
 import Papa from "papaparse";
 
 interface CSVRow {
@@ -31,7 +25,8 @@ interface TranslationSuggestion {
 }
 
 // CONFIGURE YOUR GITHUB CSV URL HERE
-const GITHUB_CSV_URL = "https://raw.githubusercontent.com/smartsw33t/corpus/main/English%20Tamil%20Corpus%20Updated%20frequently.csv";
+const GITHUB_CSV_URL =
+  "https://raw.githubusercontent.com/smartsw33t/corpus/main/English%20Tamil%20Corpus%20Updated%20frequently.csv";
 
 export default function Index() {
   const [modelState, setModelState] = useState<ModelState>({
@@ -149,10 +144,7 @@ export default function Index() {
 
             // Extract translation pairs
             const pairs: TranslationPair[] = csvData
-              .filter(
-                (row) =>
-                  row[englishKey]?.trim() && row[tamilKey]?.trim()
-              )
+              .filter((row) => row[englishKey]?.trim() && row[tamilKey]?.trim())
               .map((row) => ({
                 english: row[englishKey].trim(),
                 tamil: row[tamilKey].trim(),
@@ -326,9 +318,7 @@ export default function Index() {
                 </p>
                 <div className="w-full max-w-xs">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-slate-300">
-                      Progress
-                    </span>
+                    <span className="text-xs text-slate-300">Progress</span>
                     <span className="text-xs text-slate-400">
                       {modelState.progress}%
                     </span>
@@ -355,7 +345,11 @@ export default function Index() {
                   </h2>
                   <p className="text-red-300 text-sm">{modelState.error}</p>
                   <p className="text-slate-400 text-xs mt-4">
-                    Make sure you've updated the <code className="bg-white/10 px-2 py-1 rounded">GITHUB_CSV_URL</code> constant in the code with your actual CSV URL.
+                    Make sure you've updated the{" "}
+                    <code className="bg-white/10 px-2 py-1 rounded">
+                      GITHUB_CSV_URL
+                    </code>{" "}
+                    constant in the code with your actual CSV URL.
                   </p>
                 </div>
               </div>
@@ -423,7 +417,8 @@ export default function Index() {
                 {translationInput.trim() && suggestions.length === 0 && (
                   <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                     <p className="text-blue-300 text-sm">
-                      No matching translations found. Try different keywords from your training data.
+                      No matching translations found. Try different keywords
+                      from your training data.
                     </p>
                   </div>
                 )}
@@ -447,7 +442,7 @@ export default function Index() {
                     {(
                       modelState.pairs.reduce(
                         (sum, p) => sum + p.english.split(" ").length,
-                        0
+                        0,
                       ) / modelState.pairs.length
                     ).toFixed(1)}
                   </p>
