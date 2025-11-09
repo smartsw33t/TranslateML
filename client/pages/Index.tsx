@@ -18,6 +18,12 @@ interface ModelState {
   error: string | null;
 }
 
+interface TranslationSuggestion {
+  english: string;
+  tamil: string;
+  confidence: number;
+}
+
 export default function Index() {
   const [modelState, setModelState] = useState<ModelState>({
     status: "idle",
@@ -26,7 +32,52 @@ export default function Index() {
     error: null,
   });
 
+  const [translationInput, setTranslationInput] = useState("");
+  const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>([]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const calculateSimilarity = (input: string, target: string): number => {
+    const inputWords = input.toLowerCase().trim().split(/\s+/);
+    const targetWords = target.toLowerCase().split(/\s+/);
+
+    let matchCount = 0;
+    for (const inputWord of inputWords) {
+      for (const targetWord of targetWords) {
+        if (targetWord.includes(inputWord) || inputWord === targetWord) {
+          matchCount++;
+          break;
+        }
+      }
+    }
+
+    return (matchCount / Math.max(inputWords.length, targetWords.length)) * 100;
+  };
+
+  const findSuggestions = (input: string) => {
+    if (!input.trim() || modelState.pairs.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+
+    const scored = modelState.pairs
+      .map((pair) => ({
+        english: pair.english,
+        tamil: pair.tamil,
+        confidence: calculateSimilarity(input, pair.english),
+      }))
+      .filter((s) => s.confidence > 0)
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 5);
+
+    setSuggestions(scored);
+  };
+
+  const handleTranslationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTranslationInput(value);
+    findSuggestions(value);
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
