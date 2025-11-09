@@ -457,6 +457,71 @@ export default function Index() {
                   </div>
                 </div>
               )}
+
+              {/* Translation Request Section */}
+              {modelState.status === "complete" && (
+                <div className="mt-8 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    Translate New Text
+                  </h2>
+
+                  <input
+                    type="text"
+                    placeholder="Enter English text to translate..."
+                    value={translationInput}
+                    onChange={handleTranslationInput}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                  />
+
+                  {suggestions.length > 0 && (
+                    <div className="mt-6 space-y-3">
+                      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
+                        Suggestions
+                      </h3>
+
+                      {suggestions.map((suggestion, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-white mb-1">
+                                {suggestion.english}
+                              </p>
+                              <p className="text-sm text-purple-200">
+                                {suggestion.tamil}
+                              </p>
+                            </div>
+                            <div className="ml-4 text-right">
+                              <div className="text-xs font-semibold text-slate-300 mb-1">
+                                Confidence
+                              </div>
+                              <div className="text-2xl font-bold text-purple-400">
+                                {suggestion.confidence.toFixed(0)}%
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
+                              style={{ width: `${suggestion.confidence}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {translationInput.trim() && suggestions.length === 0 && (
+                    <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-blue-300 text-sm">
+                        No matching translations found. Try different keywords from your training data.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </main>
