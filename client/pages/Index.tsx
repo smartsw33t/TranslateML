@@ -1,5 +1,12 @@
 import { useState, useRef } from "react";
-import { Upload, Zap, Download, Loader, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Upload,
+  Zap,
+  Download,
+  Loader,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import Papa from "papaparse";
 
 interface CSVRow {
@@ -96,7 +103,7 @@ export default function Index() {
       complete: (results) => {
         try {
           const csvData = results.data as CSVRow[];
-          
+
           if (csvData.length === 0) {
             setModelState((prev) => ({
               ...prev,
@@ -109,7 +116,7 @@ export default function Index() {
           // Detect column names (case-insensitive)
           const firstRow = csvData[0];
           const keys = Object.keys(firstRow);
-          
+
           let englishKey = "";
           let tamilKey = "";
 
@@ -151,10 +158,7 @@ export default function Index() {
 
           // Extract translation pairs
           const pairs: TranslationPair[] = csvData
-            .filter(
-              (row) =>
-                row[englishKey]?.trim() && row[tamilKey]?.trim()
-            )
+            .filter((row) => row[englishKey]?.trim() && row[tamilKey]?.trim())
             .map((row) => ({
               english: row[englishKey].trim(),
               tamil: row[tamilKey].trim(),
@@ -291,7 +295,9 @@ export default function Index() {
                   <p className="text-white font-medium text-sm">
                     Drop your CSV here
                   </p>
-                  <p className="text-slate-400 text-xs mt-1">or click to browse</p>
+                  <p className="text-slate-400 text-xs mt-1">
+                    or click to browse
+                  </p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -444,7 +450,7 @@ export default function Index() {
                       {(
                         modelState.pairs.reduce(
                           (sum, p) => sum + p.english.split(" ").length,
-                          0
+                          0,
                         ) / modelState.pairs.length
                       ).toFixed(1)}
                     </p>
@@ -516,7 +522,8 @@ export default function Index() {
                   {translationInput.trim() && suggestions.length === 0 && (
                     <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                       <p className="text-blue-300 text-sm">
-                        No matching translations found. Try different keywords from your training data.
+                        No matching translations found. Try different keywords
+                        from your training data.
                       </p>
                     </div>
                   )}
