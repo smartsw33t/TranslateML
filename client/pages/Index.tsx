@@ -38,6 +38,10 @@ export default function Index() {
 
   const [translationInput, setTranslationInput] = useState("");
   const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Auto-refresh every 5 minutes (300000 ms)
+  const REFRESH_INTERVAL = 5 * 60 * 1000;
 
   const calculateSimilarity = (input: string, target: string): number => {
     const inputWords = input.toLowerCase().trim().split(/\s+/);
