@@ -311,9 +311,16 @@ export default function Index() {
               </div>
               <h1 className="text-2xl font-bold text-white">TranslateML</h1>
             </div>
-            <p className="text-slate-300 text-sm">
-              Translate text using your CSV-based translation model
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-slate-300 text-sm">
+                Translate text using your CSV-based translation model
+              </p>
+              {lastUpdated && (
+                <p className="text-slate-500 text-xs">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+              )}
+            </div>
           </div>
         </header>
 
