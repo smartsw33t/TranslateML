@@ -219,38 +219,48 @@ export default function Index() {
     }
   };
 
-  // Fetch CSV from GitHub on component mount
-  useEffect(() => {
-    const fetchCSV = async () => {
-      setModelState({
-        status: "loading",
-        progress: 0,
-        pairs: [],
-        error: null,
-      });
+  // Fetch CSV from GitHub
+  const fetchCSV = async () => {
+    setModelState((prev) => ({
+      ...prev,
+      status: "loading",
+      progress: 0,
+      error: null,
+    }));
 
-      try {
-        setModelState((prev) => ({ ...prev, progress: 20 }));
+    try {
+      setModelState((prev) => ({ ...prev, progress: 20 }));
 
-        const response = await fetch(GITHUB_CSV_URL);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch CSV: ${response.statusText}`);
-        }
-
-        setModelState((prev) => ({ ...prev, progress: 50 }));
-
-        const csvText = await response.text();
-        processCSVData(csvText);
-      } catch (err) {
-        setModelState((prev) => ({
-          ...prev,
-          error: `Unable to load CSV from GitHub. Please check the URL and ensure CORS is enabled.`,
-          status: "idle",
-        }));
+      const response = await fetch(GITHUB_CSV_URL);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch CSV: ${response.statusText}`);
       }
-    };
 
+      setModelState((prev) => ({ ...prev, progress: 50 }));
+
+      const csvText = await response.text();
+      processCSVData(csvText);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setModelState((prev) => ({
+        ...prev,
+        error: `Unable to load CSV from GitHub. Please check the URL and ensure CORS is enabled.`,
+        status: "idle",
+      }));
+    }
+  };
+
+  // Fetch CSV on component mount and set up auto-refresh
+  useEffect(() => {
     fetchCSV();
+
+    // Set up interval to refresh CSV every 5 minutes
+    const intervalId = setInterval(() => {
+      fetchCSV();
+    }, REFRESH_INTERVAL);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   const downloadModel = () => {
