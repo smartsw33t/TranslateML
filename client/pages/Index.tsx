@@ -31,7 +31,7 @@ interface TranslationSuggestion {
 }
 
 // CONFIGURE YOUR GITHUB CSV URL HERE
-const GITHUB_CSV_URL = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/translations.csv";
+const GITHUB_CSV_URL = "https://raw.githubusercontent.com/smartsw33t/corpus/main/English%20Tamil%20Corpus%20Updated%20frequently.csv";
 
 export default function Index() {
   const [modelState, setModelState] = useState<ModelState>({
