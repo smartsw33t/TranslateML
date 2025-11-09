@@ -1,6 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
-  Upload,
   Zap,
   Download,
   Loader,
@@ -19,7 +18,7 @@ interface TranslationPair {
 }
 
 interface ModelState {
-  status: "idle" | "uploading" | "processing" | "training" | "complete";
+  status: "idle" | "loading" | "processing" | "training" | "complete";
   progress: number;
   pairs: TranslationPair[];
   error: string | null;
@@ -31,6 +30,9 @@ interface TranslationSuggestion {
   confidence: number;
 }
 
+// CONFIGURE YOUR GITHUB CSV URL HERE
+const GITHUB_CSV_URL = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/translations.csv";
+
 export default function Index() {
   const [modelState, setModelState] = useState<ModelState>({
     status: "idle",
@@ -41,8 +43,6 @@ export default function Index() {
 
   const [translationInput, setTranslationInput] = useState("");
   const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>([]);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const calculateSimilarity = (input: string, target: string): number => {
     const inputWords = input.toLowerCase().trim().split(/\s+/);
@@ -86,141 +86,176 @@ export default function Index() {
     findSuggestions(value);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const processCSVData = (csvText: string) => {
+    try {
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          try {
+            const csvData = results.data as CSVRow[];
 
-    setModelState({
-      status: "uploading",
-      progress: 0,
-      pairs: [],
-      error: null,
-    });
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        try {
-          const csvData = results.data as CSVRow[];
-
-          if (csvData.length === 0) {
-            setModelState((prev) => ({
-              ...prev,
-              error: "CSV file is empty",
-              status: "idle",
-            }));
-            return;
-          }
-
-          // Detect column names (case-insensitive)
-          const firstRow = csvData[0];
-          const keys = Object.keys(firstRow);
-
-          let englishKey = "";
-          let tamilKey = "";
-
-          for (const key of keys) {
-            const lowerKey = key.toLowerCase();
-            if (
-              lowerKey.includes("english") ||
-              lowerKey.includes("source") ||
-              lowerKey.includes("en")
-            ) {
-              englishKey = key;
+            if (csvData.length === 0) {
+              setModelState((prev) => ({
+                ...prev,
+                error: "CSV file is empty",
+                status: "idle",
+              }));
+              return;
             }
-            if (
-              lowerKey.includes("tamil") ||
-              lowerKey.includes("target") ||
-              lowerKey.includes("ta") ||
-              lowerKey.includes("translation")
-            ) {
-              tamilKey = key;
+
+            // Detect column names (case-insensitive)
+            const firstRow = csvData[0];
+            const keys = Object.keys(firstRow);
+
+            let englishKey = "";
+            let tamilKey = "";
+
+            for (const key of keys) {
+              const lowerKey = key.toLowerCase();
+              if (
+                lowerKey.includes("english") ||
+                lowerKey.includes("source") ||
+                lowerKey.includes("en")
+              ) {
+                englishKey = key;
+              }
+              if (
+                lowerKey.includes("tamil") ||
+                lowerKey.includes("target") ||
+                lowerKey.includes("ta") ||
+                lowerKey.includes("translation")
+              ) {
+                tamilKey = key;
+              }
             }
-          }
 
-          // Fallback to first two columns if detection fails
-          if (!englishKey || !tamilKey) {
-            const availableKeys = keys.filter((k) => k.trim() !== "");
-            englishKey = availableKeys[0] || "";
-            tamilKey = availableKeys[1] || "";
-          }
+            // Fallback to first two columns if detection fails
+            if (!englishKey || !tamilKey) {
+              const availableKeys = keys.filter((k) => k.trim() !== "");
+              englishKey = availableKeys[0] || "";
+              tamilKey = availableKeys[1] || "";
+            }
 
-          if (!englishKey || !tamilKey) {
+            if (!englishKey || !tamilKey) {
+              setModelState((prev) => ({
+                ...prev,
+                error:
+                  "Could not find English and Tamil columns. Please ensure your CSV has columns for both languages.",
+                status: "idle",
+              }));
+              return;
+            }
+
+            // Extract translation pairs
+            const pairs: TranslationPair[] = csvData
+              .filter(
+                (row) =>
+                  row[englishKey]?.trim() && row[tamilKey]?.trim()
+              )
+              .map((row) => ({
+                english: row[englishKey].trim(),
+                tamil: row[tamilKey].trim(),
+              }));
+
+            if (pairs.length === 0) {
+              setModelState((prev) => ({
+                ...prev,
+                error: "No valid translation pairs found in CSV",
+                status: "idle",
+              }));
+              return;
+            }
+
+            // Simulate processing
             setModelState((prev) => ({
               ...prev,
-              error:
-                "Could not find English and Tamil columns. Please ensure your CSV has columns for both languages.",
-              status: "idle",
-            }));
-            return;
-          }
-
-          // Extract translation pairs
-          const pairs: TranslationPair[] = csvData
-            .filter((row) => row[englishKey]?.trim() && row[tamilKey]?.trim())
-            .map((row) => ({
-              english: row[englishKey].trim(),
-              tamil: row[tamilKey].trim(),
+              status: "processing",
+              progress: 30,
             }));
 
-          if (pairs.length === 0) {
+            setTimeout(() => {
+              setModelState((prev) => ({
+                ...prev,
+                status: "training",
+                progress: 60,
+              }));
+            }, 500);
+
+            setTimeout(() => {
+              setModelState((prev) => ({
+                ...prev,
+                status: "training",
+                progress: 90,
+              }));
+            }, 1000);
+
+            setTimeout(() => {
+              setModelState({
+                status: "complete",
+                progress: 100,
+                pairs,
+                error: null,
+              });
+            }, 1500);
+          } catch (err) {
             setModelState((prev) => ({
               ...prev,
-              error: "No valid translation pairs found in CSV",
+              error: "Error parsing CSV file. Please check the format.",
               status: "idle",
             }));
-            return;
           }
-
-          // Simulate processing
+        },
+        error: (error) => {
           setModelState((prev) => ({
             ...prev,
-            status: "processing",
-            progress: 30,
-          }));
-
-          setTimeout(() => {
-            setModelState((prev) => ({
-              ...prev,
-              status: "training",
-              progress: 60,
-            }));
-          }, 500);
-
-          setTimeout(() => {
-            setModelState((prev) => ({
-              ...prev,
-              status: "training",
-              progress: 90,
-            }));
-          }, 1000);
-
-          setTimeout(() => {
-            setModelState({
-              status: "complete",
-              progress: 100,
-              pairs,
-              error: null,
-            });
-          }, 1500);
-        } catch (err) {
-          setModelState((prev) => ({
-            ...prev,
-            error: "Error parsing CSV file. Please check the format.",
+            error: `Error reading file: ${error.message}`,
             status: "idle",
           }));
+        },
+      });
+    } catch (err) {
+      setModelState((prev) => ({
+        ...prev,
+        error: "Error processing CSV data",
+        status: "idle",
+      }));
+    }
+  };
+
+  // Fetch CSV from GitHub on component mount
+  useEffect(() => {
+    const fetchCSV = async () => {
+      setModelState({
+        status: "loading",
+        progress: 0,
+        pairs: [],
+        error: null,
+      });
+
+      try {
+        setModelState((prev) => ({ ...prev, progress: 20 }));
+
+        const response = await fetch(GITHUB_CSV_URL);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch CSV: ${response.statusText}`);
         }
-      },
-      error: (error) => {
+
+        setModelState((prev) => ({ ...prev, progress: 50 }));
+
+        const csvText = await response.text();
+        processCSVData(csvText);
+      } catch (err) {
         setModelState((prev) => ({
           ...prev,
-          error: `Error reading file: ${error.message}`,
+          error: `Unable to load CSV from GitHub. Please check the URL and ensure CORS is enabled.`,
           status: "idle",
         }));
-      },
-    });
-  };
+      }
+    };
+
+    fetchCSV();
+  }, []);
 
   const downloadModel = () => {
     if (modelState.pairs.length === 0) return;
@@ -263,7 +298,7 @@ export default function Index() {
       <div className="relative z-10">
         {/* Header */}
         <header className="border-b border-white/10 backdrop-blur-md sticky top-0 bg-black/20">
-          <div className="max-w-6xl mx-auto px-6 py-6">
+          <div className="max-w-4xl mx-auto px-6 py-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg">
                 <Zap className="w-5 h-5 text-white" />
@@ -271,266 +306,173 @@ export default function Index() {
               <h1 className="text-2xl font-bold text-white">TranslateML</h1>
             </div>
             <p className="text-slate-300 text-sm">
-              Build powerful translation models from your CSV data
+              Translate text using your CSV-based translation model
             </p>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="max-w-6xl mx-auto px-6 py-12">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Upload Section */}
-            <div className="lg:col-span-1">
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 sticky top-24">
-                <h2 className="text-lg font-semibold text-white mb-4">
-                  Upload CSV
+        <main className="max-w-4xl mx-auto px-6 py-12">
+          {/* Loading State */}
+          {modelState.status === "loading" && (
+            <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
+              <div className="flex flex-col items-center justify-center">
+                <Loader className="w-12 h-12 text-purple-400 animate-spin mb-4" />
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  Loading Translation Model
                 </h2>
-
-                {/* File Upload Area */}
-                <div
-                  className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center cursor-pointer hover:border-purple-400/50 transition-colors group"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="w-8 h-8 text-purple-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <p className="text-white font-medium text-sm">
-                    Drop your CSV here
-                  </p>
-                  <p className="text-slate-400 text-xs mt-1">
-                    or click to browse
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    disabled={modelState.status !== "idle"}
-                  />
+                <p className="text-slate-400 text-center mb-6">
+                  Fetching and processing CSV from GitHub...
+                </p>
+                <div className="w-full max-w-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-300">
+                      Progress
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {modelState.progress}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                      style={{ width: `${modelState.progress}%` }}
+                    ></div>
+                  </div>
                 </div>
-
-                {/* Progress Bar */}
-                {modelState.status !== "idle" && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-slate-300">
-                        {modelState.status === "uploading"
-                          ? "Uploading..."
-                          : modelState.status === "processing"
-                            ? "Processing..."
-                            : modelState.status === "training"
-                              ? "Training..."
-                              : "Complete"}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {modelState.progress}%
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
-                        style={{ width: `${modelState.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error Message */}
-                {modelState.error && (
-                  <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-red-300 text-sm">{modelState.error}</p>
-                  </div>
-                )}
-
-                {/* Stats */}
-                {modelState.status === "complete" && (
-                  <div className="mt-6 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <p className="text-green-300 text-sm">Model trained!</p>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 text-xs">
-                          Translation Pairs:
-                        </span>
-                        <span className="text-white font-semibold text-sm">
-                          {modelState.pairs.length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 text-xs">
-                          Accuracy Score:
-                        </span>
-                        <span className="text-white font-semibold text-sm">
-                          {(85 + Math.random() * 14).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={downloadModel}
-                      className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download Model
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
+          )}
 
-            {/* Data Preview Section */}
-            <div className="lg:col-span-2">
+          {/* Error State */}
+          {modelState.error && (
+            <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+              <div className="flex gap-4 items-start">
+                <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h2 className="text-lg font-semibold text-white mb-2">
+                    Error Loading Model
+                  </h2>
+                  <p className="text-red-300 text-sm">{modelState.error}</p>
+                  <p className="text-slate-400 text-xs mt-4">
+                    Make sure you've updated the <code className="bg-white/10 px-2 py-1 rounded">GITHUB_CSV_URL</code> constant in the code with your actual CSV URL.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Translation Section */}
+          {modelState.status === "complete" && (
+            <div className="space-y-8">
+              {/* Translation Input */}
               <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
                 <h2 className="text-lg font-semibold text-white mb-4">
-                  Translation Pairs
+                  Translate Text
                 </h2>
 
-                {modelState.pairs.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Zap className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-400">
-                      Upload a CSV file to preview translation pairs
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4 pb-4 border-b border-white/10">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          English
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Tamil
-                        </p>
-                      </div>
-                    </div>
+                <input
+                  type="text"
+                  placeholder="Enter English text to translate..."
+                  value={translationInput}
+                  onChange={handleTranslationInput}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                  autoFocus
+                />
 
-                    <div className="max-h-96 overflow-y-auto space-y-2">
-                      {modelState.pairs.map((pair, idx) => (
-                        <div
-                          key={idx}
-                          className="grid grid-cols-2 gap-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                        >
-                          <div>
-                            <p className="text-sm text-slate-200">
-                              {pair.english}
+                {suggestions.length > 0 && (
+                  <div className="mt-6 space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
+                      Suggestions
+                    </h3>
+
+                    {suggestions.map((suggestion, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-white mb-1">
+                              {suggestion.english}
+                            </p>
+                            <p className="text-sm text-purple-200">
+                              {suggestion.tamil}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-sm text-purple-200">
-                              {pair.tamil}
-                            </p>
+                          <div className="ml-4 text-right">
+                            <div className="text-xs font-semibold text-slate-300 mb-1">
+                              Confidence
+                            </div>
+                            <div className="text-2xl font-bold text-purple-400">
+                              {suggestion.confidence.toFixed(0)}%
+                            </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
+                            style={{ width: `${suggestion.confidence}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {translationInput.trim() && suggestions.length === 0 && (
+                  <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-blue-300 text-sm">
+                      No matching translations found. Try different keywords from your training data.
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Model Insights */}
-              {modelState.status === "complete" && (
-                <div className="mt-8 grid grid-cols-3 gap-4">
-                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                    <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
-                      Total Pairs
-                    </p>
-                    <p className="text-3xl font-bold text-white">
-                      {modelState.pairs.length}
-                    </p>
-                  </div>
-                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                    <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
-                      Avg Words
-                    </p>
-                    <p className="text-3xl font-bold text-purple-400">
-                      {(
-                        modelState.pairs.reduce(
-                          (sum, p) => sum + p.english.split(" ").length,
-                          0,
-                        ) / modelState.pairs.length
-                      ).toFixed(1)}
-                    </p>
-                  </div>
-                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                    <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
-                      Model Status
-                    </p>
-                    <p className="text-3xl font-bold text-green-400">Ready</p>
+              {/* Model Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                  <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
+                    Total Pairs
+                  </p>
+                  <p className="text-3xl font-bold text-white">
+                    {modelState.pairs.length}
+                  </p>
+                </div>
+                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                  <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
+                    Avg Words
+                  </p>
+                  <p className="text-3xl font-bold text-purple-400">
+                    {(
+                      modelState.pairs.reduce(
+                        (sum, p) => sum + p.english.split(" ").length,
+                        0
+                      ) / modelState.pairs.length
+                    ).toFixed(1)}
+                  </p>
+                </div>
+                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                  <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
+                    Model Status
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                    <p className="text-xl font-bold text-green-400">Ready</p>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Translation Request Section */}
-              {modelState.status === "complete" && (
-                <div className="mt-8 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
-                  <h2 className="text-lg font-semibold text-white mb-4">
-                    Translate New Text
-                  </h2>
-
-                  <input
-                    type="text"
-                    placeholder="Enter English text to translate..."
-                    value={translationInput}
-                    onChange={handleTranslationInput}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
-                  />
-
-                  {suggestions.length > 0 && (
-                    <div className="mt-6 space-y-3">
-                      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-                        Suggestions
-                      </h3>
-
-                      {suggestions.map((suggestion, idx) => (
-                        <div
-                          key={idx}
-                          className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-white mb-1">
-                                {suggestion.english}
-                              </p>
-                              <p className="text-sm text-purple-200">
-                                {suggestion.tamil}
-                              </p>
-                            </div>
-                            <div className="ml-4 text-right">
-                              <div className="text-xs font-semibold text-slate-300 mb-1">
-                                Confidence
-                              </div>
-                              <div className="text-2xl font-bold text-purple-400">
-                                {suggestion.confidence.toFixed(0)}%
-                              </div>
-                            </div>
-                          </div>
-                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                              style={{ width: `${suggestion.confidence}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {translationInput.trim() && suggestions.length === 0 && (
-                    <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                      <p className="text-blue-300 text-sm">
-                        No matching translations found. Try different keywords
-                        from your training data.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Download Button */}
+              <button
+                onClick={downloadModel}
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition-all flex items-center justify-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                Download Model
+              </button>
             </div>
-          </div>
+          )}
         </main>
       </div>
     </div>
