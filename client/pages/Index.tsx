@@ -39,9 +39,61 @@ export default function Index() {
   const [translationInput, setTranslationInput] = useState("");
   const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [topWords, setTopWords] = useState<Array<{ word: string; count: number }>>([]);
 
   // Auto-refresh every 5 minutes (300000 ms)
   const REFRESH_INTERVAL = 5 * 60 * 1000;
+
+  // Common English stop words to exclude from frequency analysis
+  const stopWords = new Set([
+    "the", "a", "an", "and", "or", "but", "is", "are", "am", "was", "were",
+    "be", "been", "being", "have", "has", "had", "do", "does", "did", "will",
+    "would", "could", "should", "may", "might", "must", "can", "of", "in",
+    "on", "at", "to", "for", "with", "by", "from", "as", "if", "that", "this",
+    "it", "which", "who", "whom", "what", "when", "where", "why", "how", "not",
+    "no", "yes", "i", "you", "he", "she", "we", "they", "me", "him", "her", "us",
+    "them", "my", "your", "his", "her", "its", "our", "their", "what", "all",
+    "each", "every", "both", "some", "any", "few", "more", "most", "other",
+    "such", "so", "than", "too", "very", "just", "only", "own", "same", "then",
+    "now", "here", "there", "about", "above", "after", "again", "against", "any",
+    "because", "before", "being", "below", "between", "both", "during", "each",
+    "few", "further", "had", "has", "have", "having", "he", "her", "here",
+    "hers", "herself", "him", "himself", "his", "how", "i", "if", "in", "into",
+    "is", "it", "its", "itself", "just", "me", "might", "more", "most", "my",
+    "myself", "no", "nor", "not", "of", "off", "on", "only", "or", "other",
+    "our", "ours", "ourselves", "out", "over", "own", "same", "should", "so",
+    "some", "such", "than", "that", "the", "their", "theirs", "them",
+    "themselves", "then", "there", "these", "they", "this", "those", "through",
+    "to", "too", "under", "until", "up", "very", "was", "we", "were", "what",
+    "when", "where", "which", "while", "who", "whom", "why", "with", "you",
+    "your", "yours", "yourself", "yourselves"
+  ]);
+
+  const calculateWordFrequency = (pairs: TranslationPair[]) => {
+    const wordCount: Record<string, number> = {};
+
+    // Extract and count words from all English phrases
+    pairs.forEach((pair) => {
+      const words = pair.english
+        .toLowerCase()
+        .match(/\b\w+\b/g) || [];
+
+      words.forEach((word) => {
+        if (!stopWords.has(word) && word.length > 1) {
+          wordCount[word] = (wordCount[word] || 0) + 1;
+        }
+      });
+    });
+
+    // Sort by count and get top 10, then sort ascending
+    const sorted = Object.entries(wordCount)
+      .map(([word, count]) => ({ word, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .sort((a, b) => a.count - b.count);
+
+    setTopWords(sorted);
+  };
 
   const calculateSimilarity = (input: string, target: string): number => {
     const inputWords = input.toLowerCase().trim().split(/\s+/);
