@@ -245,6 +245,7 @@ export default function Index() {
                 pairs,
                 error: null,
               });
+              calculateWordFrequency(pairs);
             }, 1500);
           } catch (err) {
             setModelState((prev) => ({
