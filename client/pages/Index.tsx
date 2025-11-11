@@ -378,7 +378,7 @@ export default function Index() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-4xl mx-auto px-6 py-12">
+        <main className="max-w-7xl mx-auto px-6 py-12">
           {/* Loading State */}
           {modelState.status === "loading" && (
             <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
