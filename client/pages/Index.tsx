@@ -432,7 +432,8 @@ export default function Index() {
 
           {/* Translation Section */}
           {modelState.status === "complete" && (
-            <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="lg:col-span-3 space-y-8">
               {/* Translation Input */}
               <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
                 <h2 className="text-lg font-semibold text-white mb-4">
@@ -570,6 +571,42 @@ export default function Index() {
                 <Download className="w-5 h-5" />
                 Download Model
               </button>
+              </div>
+
+              {/* Side Panel - Top Words */}
+              <div className="lg:col-span-1">
+                <div className="sticky top-20 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 h-fit">
+                  <h2 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">
+                    Top Words
+                  </h2>
+                  {topWords.length > 0 ? (
+                    <div className="space-y-3">
+                      {topWords.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">
+                              {item.word}
+                            </p>
+                            <div className="w-full h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                                style={{
+                                  width: `${(item.count / Math.max(...topWords.map(w => w.count))) * 100}%`
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          <span className="text-xs font-semibold text-purple-300 ml-2 flex-shrink-0">
+                            {item.count}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-400 text-xs">Analyzing corpus...</p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </main>
