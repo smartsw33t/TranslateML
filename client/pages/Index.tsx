@@ -396,42 +396,72 @@ export default function Index() {
                 />
 
                 {suggestions.length > 0 && (
-                  <div className="mt-6 space-y-3">
-                    <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-                      Suggestions
-                    </h3>
-
-                    {suggestions.map((suggestion, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-2">
+                  <div className="mt-8 space-y-6">
+                    {/* Primary Suggestion */}
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                        Best Match
+                      </h3>
+                      <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl border-2 border-purple-500/50 p-6">
+                        <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-white mb-1">
-                              {suggestion.english}
+                            <p className="text-base font-semibold text-white mb-2">
+                              {suggestions[0].english}
                             </p>
-                            <p className="text-sm text-purple-200">
-                              {suggestion.tamil}
+                            <p className="text-lg text-purple-200 font-medium">
+                              {suggestions[0].tamil}
                             </p>
                           </div>
-                          <div className="ml-4 text-right">
-                            <div className="text-xs font-semibold text-slate-300 mb-1">
+                          <div className="ml-6 text-right">
+                            <div className="text-xs font-semibold text-slate-300 mb-2">
                               Confidence
                             </div>
-                            <div className="text-2xl font-bold text-purple-400">
-                              {suggestion.confidence.toFixed(0)}%
+                            <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                              {suggestions[0].confidence.toFixed(0)}%
                             </div>
                           </div>
                         </div>
-                        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                            style={{ width: `${suggestion.confidence}%` }}
+                            style={{ width: `${suggestions[0].confidence}%` }}
                           ></div>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Alternative Matches */}
+                    {suggestions.length > 1 && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                          Other Matches
+                        </h3>
+                        <div className="space-y-2">
+                          {suggestions.slice(1, 4).map((suggestion, idx) => (
+                            <div
+                              key={idx}
+                              className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-white truncate mb-1">
+                                    {suggestion.english}
+                                  </p>
+                                  <p className="text-sm text-purple-200 truncate">
+                                    {suggestion.tamil}
+                                  </p>
+                                </div>
+                                <div className="ml-4 text-right flex-shrink-0">
+                                  <div className="text-xl font-bold text-purple-400">
+                                    {suggestion.confidence.toFixed(0)}%
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
