@@ -39,34 +39,211 @@ export default function Index() {
   const [translationInput, setTranslationInput] = useState("");
   const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [topWords, setTopWords] = useState<Array<{ word: string; count: number }>>([]);
+  const [topWords, setTopWords] = useState<
+    Array<{ word: string; count: number }>
+  >([]);
 
   // Auto-refresh every 5 minutes (300000 ms)
   const REFRESH_INTERVAL = 5 * 60 * 1000;
 
   // Common English stop words to exclude from frequency analysis
   const stopWords = new Set([
-    "the", "a", "an", "and", "or", "but", "is", "are", "am", "was", "were",
-    "be", "been", "being", "have", "has", "had", "do", "does", "did", "will",
-    "would", "could", "should", "may", "might", "must", "can", "of", "in",
-    "on", "at", "to", "for", "with", "by", "from", "as", "if", "that", "this",
-    "it", "which", "who", "whom", "what", "when", "where", "why", "how", "not",
-    "no", "yes", "i", "you", "he", "she", "we", "they", "me", "him", "her", "us",
-    "them", "my", "your", "his", "her", "its", "our", "their", "what", "all",
-    "each", "every", "both", "some", "any", "few", "more", "most", "other",
-    "such", "so", "than", "too", "very", "just", "only", "own", "same", "then",
-    "now", "here", "there", "about", "above", "after", "again", "against", "any",
-    "because", "before", "being", "below", "between", "both", "during", "each",
-    "few", "further", "had", "has", "have", "having", "he", "her", "here",
-    "hers", "herself", "him", "himself", "his", "how", "i", "if", "in", "into",
-    "is", "it", "its", "itself", "just", "me", "might", "more", "most", "my",
-    "myself", "no", "nor", "not", "of", "off", "on", "only", "or", "other",
-    "our", "ours", "ourselves", "out", "over", "own", "same", "should", "so",
-    "some", "such", "than", "that", "the", "their", "theirs", "them",
-    "themselves", "then", "there", "these", "they", "this", "those", "through",
-    "to", "too", "under", "until", "up", "very", "was", "we", "were", "what",
-    "when", "where", "which", "while", "who", "whom", "why", "with", "you",
-    "your", "yours", "yourself", "yourselves"
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "is",
+    "are",
+    "am",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "must",
+    "can",
+    "of",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "with",
+    "by",
+    "from",
+    "as",
+    "if",
+    "that",
+    "this",
+    "it",
+    "which",
+    "who",
+    "whom",
+    "what",
+    "when",
+    "where",
+    "why",
+    "how",
+    "not",
+    "no",
+    "yes",
+    "i",
+    "you",
+    "he",
+    "she",
+    "we",
+    "they",
+    "me",
+    "him",
+    "her",
+    "us",
+    "them",
+    "my",
+    "your",
+    "his",
+    "her",
+    "its",
+    "our",
+    "their",
+    "what",
+    "all",
+    "each",
+    "every",
+    "both",
+    "some",
+    "any",
+    "few",
+    "more",
+    "most",
+    "other",
+    "such",
+    "so",
+    "than",
+    "too",
+    "very",
+    "just",
+    "only",
+    "own",
+    "same",
+    "then",
+    "now",
+    "here",
+    "there",
+    "about",
+    "above",
+    "after",
+    "again",
+    "against",
+    "any",
+    "because",
+    "before",
+    "being",
+    "below",
+    "between",
+    "both",
+    "during",
+    "each",
+    "few",
+    "further",
+    "had",
+    "has",
+    "have",
+    "having",
+    "he",
+    "her",
+    "here",
+    "hers",
+    "herself",
+    "him",
+    "himself",
+    "his",
+    "how",
+    "i",
+    "if",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "itself",
+    "just",
+    "me",
+    "might",
+    "more",
+    "most",
+    "my",
+    "myself",
+    "no",
+    "nor",
+    "not",
+    "of",
+    "off",
+    "on",
+    "only",
+    "or",
+    "other",
+    "our",
+    "ours",
+    "ourselves",
+    "out",
+    "over",
+    "own",
+    "same",
+    "should",
+    "so",
+    "some",
+    "such",
+    "than",
+    "that",
+    "the",
+    "their",
+    "theirs",
+    "them",
+    "themselves",
+    "then",
+    "there",
+    "these",
+    "they",
+    "this",
+    "those",
+    "through",
+    "to",
+    "too",
+    "under",
+    "until",
+    "up",
+    "very",
+    "was",
+    "we",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "while",
+    "who",
+    "whom",
+    "why",
+    "with",
+    "you",
+    "your",
+    "yours",
+    "yourself",
+    "yourselves",
   ]);
 
   const calculateWordFrequency = (pairs: TranslationPair[]) => {
@@ -74,9 +251,7 @@ export default function Index() {
 
     // Extract and count words from all English phrases
     pairs.forEach((pair) => {
-      const words = pair.english
-        .toLowerCase()
-        .match(/\b\w+\b/g) || [];
+      const words = pair.english.toLowerCase().match(/\b\w+\b/g) || [];
 
       words.forEach((word) => {
         if (!stopWords.has(word) && word.length > 1) {
@@ -434,143 +609,143 @@ export default function Index() {
           {modelState.status === "complete" && (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               <div className="lg:col-span-3 space-y-8">
-              {/* Translation Input */}
-              <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
-                <h2 className="text-lg font-semibold text-white mb-4">
-                  Translate Text
-                </h2>
+                {/* Translation Input */}
+                <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    Translate Text
+                  </h2>
 
-                <input
-                  type="text"
-                  placeholder="Enter English text to translate..."
-                  value={translationInput}
-                  onChange={handleTranslationInput}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
-                  autoFocus
-                />
+                  <input
+                    type="text"
+                    placeholder="Enter English text to translate..."
+                    value={translationInput}
+                    onChange={handleTranslationInput}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                    autoFocus
+                  />
 
-                {suggestions.length > 0 && (
-                  <div className="mt-8 space-y-6">
-                    {/* Primary Suggestion */}
-                    <div>
-                      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                        Best Match
-                      </h3>
-                      <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl border-2 border-purple-500/50 p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <p className="text-base font-semibold text-white mb-2">
-                              {suggestions[0].english}
-                            </p>
-                            <p className="text-lg text-purple-200 font-medium">
-                              {suggestions[0].tamil}
-                            </p>
-                          </div>
-                          <div className="ml-6 text-right">
-                            <div className="text-xs font-semibold text-slate-300 mb-2">
-                              Confidence
-                            </div>
-                            <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                              {suggestions[0].confidence.toFixed(0)}%
-                            </div>
-                          </div>
-                        </div>
-                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                            style={{ width: `${suggestions[0].confidence}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Alternative Matches */}
-                    {suggestions.length > 1 && (
+                  {suggestions.length > 0 && (
+                    <div className="mt-8 space-y-6">
+                      {/* Primary Suggestion */}
                       <div>
                         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                          Other Matches
+                          Best Match
                         </h3>
-                        <div className="space-y-2">
-                          {suggestions.slice(1, 4).map((suggestion, idx) => (
+                        <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl border-2 border-purple-500/50 p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <p className="text-base font-semibold text-white mb-2">
+                                {suggestions[0].english}
+                              </p>
+                              <p className="text-lg text-purple-200 font-medium">
+                                {suggestions[0].tamil}
+                              </p>
+                            </div>
+                            <div className="ml-6 text-right">
+                              <div className="text-xs font-semibold text-slate-300 mb-2">
+                                Confidence
+                              </div>
+                              <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                                {suggestions[0].confidence.toFixed(0)}%
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                             <div
-                              key={idx}
-                              className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-white truncate mb-1">
-                                    {suggestion.english}
-                                  </p>
-                                  <p className="text-sm text-purple-200 truncate">
-                                    {suggestion.tamil}
-                                  </p>
-                                </div>
-                                <div className="ml-4 text-right flex-shrink-0">
-                                  <div className="text-xl font-bold text-purple-400">
-                                    {suggestion.confidence.toFixed(0)}%
+                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
+                              style={{ width: `${suggestions[0].confidence}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Alternative Matches */}
+                      {suggestions.length > 1 && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                            Other Matches
+                          </h3>
+                          <div className="space-y-2">
+                            {suggestions.slice(1, 4).map((suggestion, idx) => (
+                              <div
+                                key={idx}
+                                className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-white truncate mb-1">
+                                      {suggestion.english}
+                                    </p>
+                                    <p className="text-sm text-purple-200 truncate">
+                                      {suggestion.tamil}
+                                    </p>
+                                  </div>
+                                  <div className="ml-4 text-right flex-shrink-0">
+                                    <div className="text-xl font-bold text-purple-400">
+                                      {suggestion.confidence.toFixed(0)}%
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
 
-                {translationInput.trim() && suggestions.length === 0 && (
-                  <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                    <p className="text-blue-300 text-sm">
-                      No matching translations found. Try different keywords
-                      from your training data.
+                  {translationInput.trim() && suggestions.length === 0 && (
+                    <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-blue-300 text-sm">
+                        No matching translations found. Try different keywords
+                        from your training data.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Model Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                    <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
+                      Total Pairs
+                    </p>
+                    <p className="text-3xl font-bold text-white">
+                      {modelState.pairs.length}
                     </p>
                   </div>
-                )}
-              </div>
-
-              {/* Model Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                  <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
-                    Total Pairs
-                  </p>
-                  <p className="text-3xl font-bold text-white">
-                    {modelState.pairs.length}
-                  </p>
-                </div>
-                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                  <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
-                    Avg Words
-                  </p>
-                  <p className="text-3xl font-bold text-purple-400">
-                    {(
-                      modelState.pairs.reduce(
-                        (sum, p) => sum + p.english.split(" ").length,
-                        0,
-                      ) / modelState.pairs.length
-                    ).toFixed(1)}
-                  </p>
-                </div>
-                <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                  <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
-                    Model Status
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                    <p className="text-xl font-bold text-green-400">Ready</p>
+                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                    <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
+                      Avg Words
+                    </p>
+                    <p className="text-3xl font-bold text-purple-400">
+                      {(
+                        modelState.pairs.reduce(
+                          (sum, p) => sum + p.english.split(" ").length,
+                          0,
+                        ) / modelState.pairs.length
+                      ).toFixed(1)}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                    <p className="text-slate-400 text-xs uppercase font-semibold tracking-wider mb-2">
+                      Model Status
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <p className="text-xl font-bold text-green-400">Ready</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Download Button */}
-              <button
-                onClick={downloadModel}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition-all flex items-center justify-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                Download Model
-              </button>
+                {/* Download Button */}
+                <button
+                  onClick={downloadModel}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition-all flex items-center justify-center gap-2"
+                >
+                  <Download className="w-5 h-5" />
+                  Download Model
+                </button>
               </div>
 
               {/* Side Panel - Top Words */}
@@ -582,7 +757,10 @@ export default function Index() {
                   {topWords.length > 0 ? (
                     <div className="space-y-3">
                       {topWords.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between">
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between"
+                        >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">
                               {item.word}
@@ -591,7 +769,7 @@ export default function Index() {
                               <div
                                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
                                 style={{
-                                  width: `${(item.count / Math.max(...topWords.map(w => w.count))) * 100}%`
+                                  width: `${(item.count / Math.max(...topWords.map((w) => w.count))) * 100}%`,
                                 }}
                               ></div>
                             </div>
@@ -603,7 +781,9 @@ export default function Index() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-400 text-xs">Analyzing corpus...</p>
+                    <p className="text-slate-400 text-xs">
+                      Analyzing corpus...
+                    </p>
                   )}
                 </div>
               </div>
