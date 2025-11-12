@@ -136,10 +136,10 @@ export default function Index() {
     };
   };
 
-  const findIndividualWordTranslation = (word: string): string | null => {
+  const findIndividualWordTranslation = (word: string): { tamil: string; score: number } | null => {
     if (!isContentWord(word)) return null;
 
-    let bestMatch: string | null = null;
+    let bestMatch: { tamil: string; score: number } | null = null;
     let bestScore = 0;
 
     // Search for this word in all corpus phrases
@@ -147,11 +147,14 @@ export default function Index() {
       const words = pair.english.toLowerCase().split(/\s+/);
       words.forEach((corpusWord, idx) => {
         const score = calculateSimilarity(word, corpusWord);
-        if (score > bestScore && score >= 50) {
+        if (score > bestScore && score >= 30) {
           bestScore = score;
           // Get the corresponding Tamil word
           const tamilWords = pair.tamil.split(/\s+/);
-          bestMatch = tamilWords[idx] || null;
+          bestMatch = {
+            tamil: tamilWords[idx] || word,
+            score: score,
+          };
         }
       });
     });
