@@ -252,49 +252,6 @@ export default function Index() {
     setSuggestions(scored);
   };
 
-  const buildCompleteTranslation = (input: string): { result: string; wordMatches: WordMatch[] } => {
-    if (!input.trim()) {
-      return { result: "", wordMatches: [] };
-    }
-
-    const words = input.toLowerCase().trim().split(/\s+/);
-    const outputParts: string[] = [];
-    const wordMatches: WordMatch[] = [];
-
-    words.forEach((word) => {
-      const wordMatches_ = modelState.pairs
-        .map((pair) => ({
-          english: pair.english,
-          tamil: pair.tamil,
-          confidence: calculateSimilarity(word, pair.english),
-        }))
-        .filter((s) => s.confidence > 0)
-        .sort((a, b) => b.confidence - a.confidence)
-        .slice(0, 3);
-
-      if (wordMatches_.length > 0 && wordMatches_[0].confidence >= 50) {
-        const bestMatch = wordMatches_[0];
-        outputParts.push(bestMatch.tamil);
-        wordMatches.push({
-          word,
-          translation: bestMatch.tamil,
-          matches: wordMatches_,
-        });
-      } else {
-        outputParts.push(word);
-        wordMatches.push({
-          word,
-          translation: word,
-          matches: wordMatches_,
-        });
-      }
-    });
-
-    return {
-      result: outputParts.join(" "),
-      wordMatches,
-    };
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
