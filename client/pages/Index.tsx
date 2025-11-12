@@ -133,7 +133,8 @@ export default function Index() {
     modelState.pairs.forEach((pair) => {
       const { score, inputWords, corpusWords, diffIndices } = calculateTemplateSimilarity(input, pair.english);
 
-      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+      // Only accept matches with at least 30% similarity to be useful
+      if (score >= 30 && (!bestMatch || score > bestMatch.score)) {
         bestMatch = { pair, score, inputWords, corpusWords, diffIndices };
       }
     });
