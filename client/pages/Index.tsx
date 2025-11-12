@@ -85,34 +85,46 @@ export default function Index() {
     const inputWords = input.toLowerCase().split(/\s+/);
     const corpusWords = corpusPhrase.toLowerCase().split(/\s+/);
 
-    if (inputWords.length !== corpusWords.length) {
+    // Allow matching even if word counts differ by 1-2 words
+    if (Math.abs(inputWords.length - corpusWords.length) > 2) {
       return { score: 0, inputWords: [], corpusWords: [], diffIndices: [] };
     }
 
-    let matchCount = 0;
-    const diffIndices: number[] = [];
+    // If lengths match exactly
+    if (inputWords.length === corpusWords.length) {
+      let matchCount = 0;
+      const diffIndices: number[] = [];
 
-    inputWords.forEach((word, idx) => {
-      const corpusWord = corpusWords[idx];
-      if (word === corpusWord) {
-        matchCount++;
-      } else if (!isContentWord(word) && !isContentWord(corpusWord)) {
-        // Both are filler words but different - treat as partial match
-        matchCount += 0.5;
-      } else if (isContentWord(word) && isContentWord(corpusWord)) {
-        // Both are content words but different - track difference
-        diffIndices.push(idx);
-      } else {
-        diffIndices.push(idx);
+      inputWords.forEach((word, idx) => {
+        const corpusWord = corpusWords[idx];
+        if (word === corpusWord) {
+          matchCount++;
+        } else if (!isContentWord(word) && !isContentWord(corpusWord)) {
+          matchCount += 0.5;
+        } else if (isContentWord(word) && isContentWord(corpusWord)) {
+          diffIndices.push(idx);
+        } else {
+          diffIndices.push(idx);
+        }
+      });
+
+      const baseScore = (matchCount / inputWords.length) * 100;
+      const onlyContentWordDiffs = diffIndices.every(idx => isContentWord(inputWords[idx]) && isContentWord(corpusWords[idx]));
+      const score = onlyContentWordDiffs ? Math.max(baseScore, 10) : baseScore;
+
+      return { score, inputWords, corpusWords, diffIndices };
+    }
+
+    // If lengths differ, try to find common content words
+    let commonWords = 0;
+    inputWords.forEach((word) => {
+      if (isContentWord(word) && corpusWords.some(cw => cw === word || (isContentWord(cw) && calculateSimilarity(word, cw) > 70))) {
+        commonWords++;
       }
     });
 
-    const baseScore = (matchCount / inputWords.length) * 100;
-    // Boost score if differences are only in content words
-    const onlyContentWordDiffs = diffIndices.every(idx => isContentWord(inputWords[idx]) && isContentWord(corpusWords[idx]));
-    const score = onlyContentWordDiffs ? Math.max(baseScore, 10) : baseScore;
-
-    return { score, inputWords, corpusWords, diffIndices };
+    const score = (commonWords / Math.max(inputWords.length, corpusWords.length)) * 100;
+    return { score, inputWords, corpusWords, diffIndices: [] };
   };
 
   const findBestTemplateSentence = (input: string): { match: TranslationPair; similarity: number; diffIndices: number[]; inputWords: string[] } | null => {
