@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Zap, Download, Loader, CheckCircle, AlertCircle } from "lucide-react";
+import { Zap, Download, Loader, CheckCircle, AlertCircle, Copy } from "lucide-react";
 import Papa from "papaparse";
 
 interface CSVRow {
