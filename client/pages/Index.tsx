@@ -312,6 +312,58 @@ export default function Index() {
     findSuggestions(value);
   };
 
+  const buildCompleteTranslation = (input: string): { result: string; wordMatches: Array<{ word: string; translation: string; matches: TranslationSuggestion[] }> } => {
+    if (!input.trim()) {
+      return { result: "", wordMatches: [] };
+    }
+
+    const words = input.toLowerCase().trim().split(/\s+/);
+    const outputParts: string[] = [];
+    const wordMatches: Array<{ word: string; translation: string; matches: TranslationSuggestion[] }> = [];
+
+    words.forEach((word) => {
+      // Find exact matches or close matches for this word
+      const wordMatches_ = modelState.pairs
+        .map((pair) => ({
+          english: pair.english,
+          tamil: pair.tamil,
+          confidence: calculateSimilarity(word, pair.english),
+        }))
+        .filter((s) => s.confidence > 0)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 3);
+
+      if (wordMatches_.length > 0 && wordMatches_[0].confidence >= 50) {
+        // Found a good match
+        const bestMatch = wordMatches_[0];
+        outputParts.push(bestMatch.tamil);
+        wordMatches.push({
+          word,
+          translation: bestMatch.tamil,
+          matches: wordMatches_,
+        });
+      } else {
+        // No match found, keep original word
+        outputParts.push(word);
+        wordMatches.push({
+          word,
+          translation: word,
+          matches: wordMatches_,
+        });
+      }
+    });
+
+    return {
+      result: outputParts.join(" "),
+      wordMatches,
+    };
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // Optional: Show toast notification
+  };
+
   const processCSVData = (csvText: string) => {
     try {
       Papa.parse(csvText, {
