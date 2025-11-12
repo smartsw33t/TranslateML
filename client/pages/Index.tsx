@@ -57,7 +57,7 @@ export default function Index() {
   // Auto-refresh every 5 minutes (300000 ms)
   const REFRESH_INTERVAL = 5 * 60 * 1000;
 
-  // Common English stop words to exclude from frequency analysis
+  // Common English stop words (fillers that don't need individual translation)
   const stopWords = new Set([
     "the", "a", "an", "and", "or", "but", "is", "are", "am", "was", "were",
     "be", "been", "being", "have", "has", "had", "do", "does", "did", "will",
@@ -81,6 +81,116 @@ export default function Index() {
     "when", "where", "which", "while", "who", "whom", "why", "with", "you",
     "your", "yours", "yourself", "yourselves"
   ]);
+
+  const isContentWord = (word: string): boolean => {
+    return !stopWords.has(word.toLowerCase());
+  };
+
+  const calculateTemplateSimilarity = (input: string, corpusPhrase: string): { score: number; inputWords: string[]; corpusWords: string[]; diffIndices: number[] } => {
+    const inputWords = input.toLowerCase().split(/\s+/);
+    const corpusWords = corpusPhrase.toLowerCase().split(/\s+/);
+
+    if (inputWords.length !== corpusWords.length) {
+      return { score: 0, inputWords: [], corpusWords: [], diffIndices: [] };
+    }
+
+    let matchCount = 0;
+    const diffIndices: number[] = [];
+
+    inputWords.forEach((word, idx) => {
+      const corpusWord = corpusWords[idx];
+      if (word === corpusWord) {
+        matchCount++;
+      } else if (!isContentWord(word) && !isContentWord(corpusWord)) {
+        // Both are filler words but different - treat as partial match
+        matchCount += 0.5;
+      } else if (isContentWord(word) && isContentWord(corpusWord)) {
+        // Both are content words but different - track difference
+        diffIndices.push(idx);
+      } else {
+        diffIndices.push(idx);
+      }
+    });
+
+    const baseScore = (matchCount / inputWords.length) * 100;
+    // Boost score if differences are only in content words
+    const onlyContentWordDiffs = diffIndices.every(idx => isContentWord(inputWords[idx]) && isContentWord(corpusWords[idx]));
+    const score = onlyContentWordDiffs ? Math.max(baseScore, 10) : baseScore;
+
+    return { score, inputWords, corpusWords, diffIndices };
+  };
+
+  const findBestTemplateSentence = (input: string): { match: TranslationPair; similarity: number; diffIndices: number[]; inputWords: string[] } | null => {
+    let bestMatch: { pair: TranslationPair; score: number; inputWords: string[]; corpusWords: string[]; diffIndices: number[] } | null = null;
+
+    modelState.pairs.forEach((pair) => {
+      const { score, inputWords, corpusWords, diffIndices } = calculateTemplateSimilarity(input, pair.english);
+
+      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { pair, score, inputWords, corpusWords, diffIndices };
+      }
+    });
+
+    if (!bestMatch) return null;
+
+    return {
+      match: bestMatch.pair,
+      similarity: Math.min(100, bestMatch.score),
+      diffIndices: bestMatch.diffIndices,
+      inputWords: bestMatch.inputWords,
+    };
+  };
+
+  const buildTemplateTranslation = (input: string): { result: string; templateMatch: TranslationPair | null; confidence: number; wordReplacements: Array<{ original: string; replacement: string }> } => {
+    if (!input.trim()) {
+      return { result: "", templateMatch: null, confidence: 0, wordReplacements: [] };
+    }
+
+    const templateMatch = findBestTemplateSentence(input);
+
+    if (!templateMatch) {
+      return { result: "", templateMatch: null, confidence: 0, wordReplacements: [] };
+    }
+
+    const { match, diffIndices, inputWords } = templateMatch;
+    const tamilWords = match.tamil.split(/\s+/);
+    const corpusWords = match.english.toLowerCase().split(/\s+/);
+    const wordReplacements: Array<{ original: string; replacement: string }> = [];
+
+    // For each differing position, find translation of the new content word
+    const replacementTamilWords = [...tamilWords];
+
+    diffIndices.forEach((idx) => {
+      const newWord = inputWords[idx];
+      if (isContentWord(newWord)) {
+        // Find translation for this word
+        const bestWordMatch = modelState.pairs
+          .map((pair) => ({
+            english: pair.english,
+            tamil: pair.tamil,
+            confidence: calculateSimilarity(newWord, pair.english),
+          }))
+          .filter((s) => s.confidence > 50)
+          .sort((a, b) => b.confidence - a.confidence)[0];
+
+        if (bestWordMatch) {
+          // Try to replace the corresponding tamil word
+          replacementTamilWords[idx] = bestWordMatch.tamil;
+          wordReplacements.push({
+            original: corpusWords[idx],
+            replacement: newWord,
+          });
+        }
+      }
+    });
+
+    return {
+      result: replacementTamilWords.join(" "),
+      templateMatch: match,
+      confidence: templateMatch.similarity,
+      wordReplacements,
+    };
+  };
 
   const calculateWordFrequency = (pairs: TranslationPair[]) => {
     const wordCount: Record<string, number> = {};
