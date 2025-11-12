@@ -136,7 +136,30 @@ export default function Index() {
     };
   };
 
-  const buildTemplateTranslation = (input: string): { result: string; templateMatch: TranslationPair | null; confidence: number; wordReplacements: Array<{ original: string; replacement: string }> } => {
+  const findIndividualWordTranslation = (word: string): string | null => {
+    if (!isContentWord(word)) return null;
+
+    let bestMatch: string | null = null;
+    let bestScore = 0;
+
+    // Search for this word in all corpus phrases
+    modelState.pairs.forEach((pair) => {
+      const words = pair.english.toLowerCase().split(/\s+/);
+      words.forEach((corpusWord, idx) => {
+        const score = calculateSimilarity(word, corpusWord);
+        if (score > bestScore && score >= 50) {
+          bestScore = score;
+          // Get the corresponding Tamil word
+          const tamilWords = pair.tamil.split(/\s+/);
+          bestMatch = tamilWords[idx] || null;
+        }
+      });
+    });
+
+    return bestMatch;
+  };
+
+  const buildTemplateTranslation = (input: string): { result: string; templateMatch: TranslationPair | null; confidence: number; wordReplacements: Array<{ wordIndex: number; original: string; replacement: string; translatedWord: string }> } => {
     if (!input.trim()) {
       return { result: "", templateMatch: null, confidence: 0, wordReplacements: [] };
     }
@@ -144,38 +167,71 @@ export default function Index() {
     const templateMatch = findBestTemplateSentence(input);
 
     if (!templateMatch) {
-      return { result: "", templateMatch: null, confidence: 0, wordReplacements: [] };
+      // No template match found - try to translate word-by-word
+      const inputWords = input.toLowerCase().split(/\s+/);
+      const outputParts: string[] = [];
+      const wordReplacements: Array<{ wordIndex: number; original: string; replacement: string; translatedWord: string }> = [];
+
+      inputWords.forEach((word, idx) => {
+        const translation = findIndividualWordTranslation(word);
+        if (translation) {
+          outputParts.push(translation);
+          wordReplacements.push({
+            wordIndex: idx,
+            original: word,
+            replacement: word,
+            translatedWord: translation,
+          });
+        } else {
+          // No translation found, keep original word
+          outputParts.push(word);
+        }
+      });
+
+      return {
+        result: outputParts.join(" "),
+        templateMatch: null,
+        confidence: 0,
+        wordReplacements,
+      };
     }
 
+    // Use template as base and enhance with individual word translations
     const { match, diffIndices, inputWords } = templateMatch;
     const tamilWords = match.tamil.split(/\s+/);
     const corpusWords = match.english.toLowerCase().split(/\s+/);
-    const wordReplacements: Array<{ original: string; replacement: string }> = [];
+    const wordReplacements: Array<{ wordIndex: number; original: string; replacement: string; translatedWord: string }> = [];
 
-    // For each differing position, find translation of the new content word
+    // Start with template translation
     const replacementTamilWords = [...tamilWords];
 
+    // For each differing position, try to find translation of the new word
     diffIndices.forEach((idx) => {
       const newWord = inputWords[idx];
-      if (isContentWord(newWord)) {
-        // Find translation for this word
-        const bestWordMatch = modelState.pairs
-          .map((pair) => ({
-            english: pair.english,
-            tamil: pair.tamil,
-            confidence: calculateSimilarity(newWord, pair.english),
-          }))
-          .filter((s) => s.confidence > 50)
-          .sort((a, b) => b.confidence - a.confidence)[0];
 
-        if (bestWordMatch) {
-          // Try to replace the corresponding tamil word
-          replacementTamilWords[idx] = bestWordMatch.tamil;
-          wordReplacements.push({
-            original: corpusWords[idx],
-            replacement: newWord,
-          });
-        }
+      // Try to find individual translation for this word
+      const wordTranslation = findIndividualWordTranslation(newWord);
+
+      if (wordTranslation) {
+        replacementTamilWords[idx] = wordTranslation;
+        wordReplacements.push({
+          wordIndex: idx,
+          original: corpusWords[idx],
+          replacement: newWord,
+          translatedWord: wordTranslation,
+        });
+      } else if (!isContentWord(newWord)) {
+        // Filler word not found - keep original
+        replacementTamilWords[idx] = tamilWords[idx];
+      } else {
+        // Content word not found - keep the word as-is
+        replacementTamilWords[idx] = newWord;
+        wordReplacements.push({
+          wordIndex: idx,
+          original: corpusWords[idx],
+          replacement: newWord,
+          translatedWord: newWord,
+        });
       }
     });
 
