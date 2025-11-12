@@ -567,16 +567,16 @@ export default function Index() {
 
                   {translationInput.trim() && (
                     <div className="mt-8 space-y-6">
-                      {/* Complete Translation Output */}
+                      {/* Template-Based Translation Output */}
                       {(() => {
-                        const { result, wordMatches } = buildCompleteTranslation(translationInput);
+                        const { result, templateMatch, confidence, wordReplacements } = buildTemplateTranslation(translationInput);
                         return (
                           <div>
                             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                              Complete Translation
+                              Translation (Template-Based)
                             </h3>
                             <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl border-2 border-blue-500/50 p-6">
-                              <div className="flex items-start gap-4">
+                              <div className="flex items-start justify-between mb-4">
                                 <div className="flex-1">
                                   <textarea
                                     readOnly
@@ -587,54 +587,53 @@ export default function Index() {
                                 </div>
                                 <button
                                   onClick={() => copyToClipboard(result)}
-                                  className="flex-shrink-0 mt-1 p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                  className="flex-shrink-0 mt-1 ml-4 p-2 hover:bg-white/10 rounded-lg transition-colors"
                                   title="Copy to clipboard"
                                 >
                                   <Copy className="w-5 h-5 text-blue-300" />
                                 </button>
                               </div>
 
-                              {/* Word-by-word breakdown */}
-                              {wordMatches.length > 0 && (
+                              {/* Template Information */}
+                              {templateMatch && (
                                 <div className="mt-6 space-y-3 border-t border-white/10 pt-6">
-                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                    Word Breakdown
-                                  </p>
-                                  {wordMatches.map((match, idx) => (
-                                    <div key={idx} className="space-y-2">
-                                      <div className="flex items-center gap-3 flex-wrap">
-                                        <span className="text-sm font-medium text-white bg-white/10 px-3 py-1 rounded">
-                                          {match.word}
-                                        </span>
-                                        <span className="text-sm text-blue-200">→</span>
-                                        <span className="text-sm font-medium text-blue-300">
-                                          {match.translation}
-                                        </span>
-                                        {match.matches.length > 1 && (
-                                          <span className="text-xs text-slate-400">
-                                            +{match.matches.length - 1} alternatives
-                                          </span>
-                                        )}
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                      Template Match
+                                    </p>
+                                    <p className="text-lg font-bold text-blue-400">
+                                      {confidence.toFixed(0)}%
+                                    </p>
+                                  </div>
+
+                                  <div className="p-3 bg-white/5 rounded-lg">
+                                    <p className="text-xs text-slate-400 mb-2">Matched Phrase:</p>
+                                    <p className="text-sm text-white mb-1">{templateMatch.english}</p>
+                                    <p className="text-sm text-blue-200">{templateMatch.tamil}</p>
+                                  </div>
+
+                                  {wordReplacements.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-slate-400 mb-2">Word Replacements:</p>
+                                      <div className="space-y-2">
+                                        {wordReplacements.map((replacement, idx) => (
+                                          <div key={idx} className="text-xs text-slate-300 flex items-center gap-2">
+                                            <span className="bg-white/10 px-2 py-1 rounded">{replacement.original}</span>
+                                            <span>→</span>
+                                            <span className="bg-blue-500/20 px-2 py-1 rounded text-blue-300 font-medium">{replacement.replacement}</span>
+                                          </div>
+                                        ))}
                                       </div>
-                                      {match.matches.length > 1 && (
-                                        <div className="ml-3 space-y-1">
-                                          {match.matches.slice(1, 3).map((alt, altIdx) => (
-                                            <div
-                                              key={altIdx}
-                                              className="flex items-center gap-2 text-xs"
-                                            >
-                                              <span className="text-slate-500">
-                                                {alt.tamil}
-                                              </span>
-                                              <span className="text-slate-600">
-                                                ({alt.confidence.toFixed(0)}%)
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
                                     </div>
-                                  ))}
+                                  )}
+                                </div>
+                              )}
+
+                              {!result && (
+                                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                                  <p className="text-yellow-300 text-xs">
+                                    No template match found. Try phrases similar to your corpus.
+                                  </p>
                                 </div>
                               )}
                             </div>
