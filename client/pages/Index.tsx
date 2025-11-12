@@ -1,5 +1,12 @@
-import { useState, useRef, useEffect } from "react";
-import { Zap, Download, Loader, CheckCircle, AlertCircle, Copy } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Zap,
+  Download,
+  Loader,
+  CheckCircle,
+  AlertCircle,
+  Copy,
+} from "lucide-react";
 import Papa from "papaparse";
 
 interface CSVRow {
@@ -24,6 +31,12 @@ interface TranslationSuggestion {
   confidence: number;
 }
 
+interface WordMatch {
+  word: string;
+  translation: string;
+  matches: TranslationSuggestion[];
+}
+
 // CONFIGURE YOUR GITHUB CSV URL HERE
 const GITHUB_CSV_URL =
   "https://raw.githubusercontent.com/smartsw33t/corpus/main/English%20Tamil%20Corpus%20Updated%20frequently.csv";
@@ -39,219 +52,43 @@ export default function Index() {
   const [translationInput, setTranslationInput] = useState("");
   const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [topWords, setTopWords] = useState<
-    Array<{ word: string; count: number }>
-  >([]);
+  const [topWords, setTopWords] = useState<Array<{ word: string; count: number }>>([]);
 
   // Auto-refresh every 5 minutes (300000 ms)
   const REFRESH_INTERVAL = 5 * 60 * 1000;
 
   // Common English stop words to exclude from frequency analysis
   const stopWords = new Set([
-    "the",
-    "a",
-    "an",
-    "and",
-    "or",
-    "but",
-    "is",
-    "are",
-    "am",
-    "was",
-    "were",
-    "be",
-    "been",
-    "being",
-    "have",
-    "has",
-    "had",
-    "do",
-    "does",
-    "did",
-    "will",
-    "would",
-    "could",
-    "should",
-    "may",
-    "might",
-    "must",
-    "can",
-    "of",
-    "in",
-    "on",
-    "at",
-    "to",
-    "for",
-    "with",
-    "by",
-    "from",
-    "as",
-    "if",
-    "that",
-    "this",
-    "it",
-    "which",
-    "who",
-    "whom",
-    "what",
-    "when",
-    "where",
-    "why",
-    "how",
-    "not",
-    "no",
-    "yes",
-    "i",
-    "you",
-    "he",
-    "she",
-    "we",
-    "they",
-    "me",
-    "him",
-    "her",
-    "us",
-    "them",
-    "my",
-    "your",
-    "his",
-    "her",
-    "its",
-    "our",
-    "their",
-    "what",
-    "all",
-    "each",
-    "every",
-    "both",
-    "some",
-    "any",
-    "few",
-    "more",
-    "most",
-    "other",
-    "such",
-    "so",
-    "than",
-    "too",
-    "very",
-    "just",
-    "only",
-    "own",
-    "same",
-    "then",
-    "now",
-    "here",
-    "there",
-    "about",
-    "above",
-    "after",
-    "again",
-    "against",
-    "any",
-    "because",
-    "before",
-    "being",
-    "below",
-    "between",
-    "both",
-    "during",
-    "each",
-    "few",
-    "further",
-    "had",
-    "has",
-    "have",
-    "having",
-    "he",
-    "her",
-    "here",
-    "hers",
-    "herself",
-    "him",
-    "himself",
-    "his",
-    "how",
-    "i",
-    "if",
-    "in",
-    "into",
-    "is",
-    "it",
-    "its",
-    "itself",
-    "just",
-    "me",
-    "might",
-    "more",
-    "most",
-    "my",
-    "myself",
-    "no",
-    "nor",
-    "not",
-    "of",
-    "off",
-    "on",
-    "only",
-    "or",
-    "other",
-    "our",
-    "ours",
-    "ourselves",
-    "out",
-    "over",
-    "own",
-    "same",
-    "should",
-    "so",
-    "some",
-    "such",
-    "than",
-    "that",
-    "the",
-    "their",
-    "theirs",
-    "them",
-    "themselves",
-    "then",
-    "there",
-    "these",
-    "they",
-    "this",
-    "those",
-    "through",
-    "to",
-    "too",
-    "under",
-    "until",
-    "up",
-    "very",
-    "was",
-    "we",
-    "were",
-    "what",
-    "when",
-    "where",
-    "which",
-    "while",
-    "who",
-    "whom",
-    "why",
-    "with",
-    "you",
-    "your",
-    "yours",
-    "yourself",
-    "yourselves",
+    "the", "a", "an", "and", "or", "but", "is", "are", "am", "was", "were",
+    "be", "been", "being", "have", "has", "had", "do", "does", "did", "will",
+    "would", "could", "should", "may", "might", "must", "can", "of", "in",
+    "on", "at", "to", "for", "with", "by", "from", "as", "if", "that", "this",
+    "it", "which", "who", "whom", "what", "when", "where", "why", "how", "not",
+    "no", "yes", "i", "you", "he", "she", "we", "they", "me", "him", "her", "us",
+    "them", "my", "your", "his", "her", "its", "our", "their", "what", "all",
+    "each", "every", "both", "some", "any", "few", "more", "most", "other",
+    "such", "so", "than", "too", "very", "just", "only", "own", "same", "then",
+    "now", "here", "there", "about", "above", "after", "again", "against", "any",
+    "because", "before", "being", "below", "between", "both", "during", "each",
+    "few", "further", "had", "has", "have", "having", "he", "her", "here",
+    "hers", "herself", "him", "himself", "his", "how", "i", "if", "in", "into",
+    "is", "it", "its", "itself", "just", "me", "might", "more", "most", "my",
+    "myself", "no", "nor", "not", "of", "off", "on", "only", "or", "other",
+    "our", "ours", "ourselves", "out", "over", "own", "same", "should", "so",
+    "some", "such", "than", "that", "the", "their", "theirs", "them",
+    "themselves", "then", "there", "these", "they", "this", "those", "through",
+    "to", "too", "under", "until", "up", "very", "was", "we", "were", "what",
+    "when", "where", "which", "while", "who", "whom", "why", "with", "you",
+    "your", "yours", "yourself", "yourselves"
   ]);
 
   const calculateWordFrequency = (pairs: TranslationPair[]) => {
     const wordCount: Record<string, number> = {};
 
-    // Extract and count words from all English phrases
     pairs.forEach((pair) => {
-      const words = pair.english.toLowerCase().match(/\b\w+\b/g) || [];
+      const words = pair.english
+        .toLowerCase()
+        .match(/\b\w+\b/g) || [];
 
       words.forEach((word) => {
         if (!stopWords.has(word) && word.length > 1) {
@@ -260,7 +97,6 @@ export default function Index() {
       });
     });
 
-    // Sort by count and get top 10, then sort ascending
     const sorted = Object.entries(wordCount)
       .map(([word, count]) => ({ word, count }))
       .sort((a, b) => b.count - a.count)
@@ -306,23 +142,16 @@ export default function Index() {
     setSuggestions(scored);
   };
 
-  const handleTranslationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setTranslationInput(value);
-    findSuggestions(value);
-  };
-
-  const buildCompleteTranslation = (input: string): { result: string; wordMatches: Array<{ word: string; translation: string; matches: TranslationSuggestion[] }> } => {
+  const buildCompleteTranslation = (input: string): { result: string; wordMatches: WordMatch[] } => {
     if (!input.trim()) {
       return { result: "", wordMatches: [] };
     }
 
     const words = input.toLowerCase().trim().split(/\s+/);
     const outputParts: string[] = [];
-    const wordMatches: Array<{ word: string; translation: string; matches: TranslationSuggestion[] }> = [];
+    const wordMatches: WordMatch[] = [];
 
     words.forEach((word) => {
-      // Find exact matches or close matches for this word
       const wordMatches_ = modelState.pairs
         .map((pair) => ({
           english: pair.english,
@@ -334,7 +163,6 @@ export default function Index() {
         .slice(0, 3);
 
       if (wordMatches_.length > 0 && wordMatches_[0].confidence >= 50) {
-        // Found a good match
         const bestMatch = wordMatches_[0];
         outputParts.push(bestMatch.tamil);
         wordMatches.push({
@@ -343,7 +171,6 @@ export default function Index() {
           matches: wordMatches_,
         });
       } else {
-        // No match found, keep original word
         outputParts.push(word);
         wordMatches.push({
           word,
@@ -361,7 +188,6 @@ export default function Index() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    // Optional: Show toast notification
   };
 
   const processCSVData = (csvText: string) => {
@@ -382,7 +208,6 @@ export default function Index() {
               return;
             }
 
-            // Detect column names (case-insensitive)
             const firstRow = csvData[0];
             const keys = Object.keys(firstRow);
 
@@ -408,7 +233,6 @@ export default function Index() {
               }
             }
 
-            // Fallback to first two columns if detection fails
             if (!englishKey || !tamilKey) {
               const availableKeys = keys.filter((k) => k.trim() !== "");
               englishKey = availableKeys[0] || "";
@@ -425,9 +249,11 @@ export default function Index() {
               return;
             }
 
-            // Extract translation pairs
             const pairs: TranslationPair[] = csvData
-              .filter((row) => row[englishKey]?.trim() && row[tamilKey]?.trim())
+              .filter(
+                (row) =>
+                  row[englishKey]?.trim() && row[tamilKey]?.trim()
+              )
               .map((row) => ({
                 english: row[englishKey].trim(),
                 tamil: row[tamilKey].trim(),
@@ -442,7 +268,6 @@ export default function Index() {
               return;
             }
 
-            // Simulate processing
             setModelState((prev) => ({
               ...prev,
               status: "processing",
@@ -499,7 +324,6 @@ export default function Index() {
     }
   };
 
-  // Fetch CSV from GitHub
   const fetchCSV = async () => {
     setModelState((prev) => ({
       ...prev,
@@ -530,16 +354,13 @@ export default function Index() {
     }
   };
 
-  // Fetch CSV on component mount and set up auto-refresh
   useEffect(() => {
     fetchCSV();
 
-    // Set up interval to refresh CSV every 5 minutes
     const intervalId = setInterval(() => {
       fetchCSV();
     }, REFRESH_INTERVAL);
 
-    // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
   }, []);
 
@@ -584,17 +405,19 @@ export default function Index() {
       <div className="relative z-10">
         {/* Header */}
         <header className="border-b border-white/10 backdrop-blur-md sticky top-0 bg-black/20">
-          <div className="max-w-4xl mx-auto px-6 py-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-white">TranslateML</h1>
-            </div>
+          <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex items-center justify-between">
-              <p className="text-slate-300 text-sm">
-                Translate text using your CSV-based translation model
-              </p>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg">
+                    <Zap className="w-5 h-5 text-white" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-white">TranslateML</h1>
+                </div>
+                <p className="text-slate-300 text-sm">
+                  Translate text using your CSV-based translation model
+                </p>
+              </div>
               {lastUpdated && (
                 <p className="text-slate-500 text-xs">
                   Last updated: {lastUpdated.toLocaleTimeString()}
@@ -646,11 +469,7 @@ export default function Index() {
                   </h2>
                   <p className="text-red-300 text-sm">{modelState.error}</p>
                   <p className="text-slate-400 text-xs mt-4">
-                    Make sure you've updated the{" "}
-                    <code className="bg-white/10 px-2 py-1 rounded">
-                      GITHUB_CSV_URL
-                    </code>{" "}
-                    constant in the code with your actual CSV URL.
+                    Make sure you've updated the <code className="bg-white/10 px-2 py-1 rounded">GITHUB_CSV_URL</code> constant in the code with your actual CSV URL.
                   </p>
                 </div>
               </div>
@@ -671,76 +490,160 @@ export default function Index() {
                     type="text"
                     placeholder="Enter English text to translate..."
                     value={translationInput}
-                    onChange={handleTranslationInput}
+                    onChange={(e) => {
+                      setTranslationInput(e.target.value);
+                      findSuggestions(e.target.value);
+                    }}
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
                     autoFocus
                   />
 
-                  {suggestions.length > 0 && (
+                  {translationInput.trim() && (
                     <div className="mt-8 space-y-6">
-                      {/* Primary Suggestion */}
-                      <div>
-                        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                          Best Match
-                        </h3>
-                        <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl border-2 border-purple-500/50 p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <p className="text-base font-semibold text-white mb-2">
-                                {suggestions[0].english}
-                              </p>
-                              <p className="text-lg text-purple-200 font-medium">
-                                {suggestions[0].tamil}
-                              </p>
-                            </div>
-                            <div className="ml-6 text-right">
-                              <div className="text-xs font-semibold text-slate-300 mb-2">
-                                Confidence
+                      {/* Complete Translation Output */}
+                      {(() => {
+                        const { result, wordMatches } = buildCompleteTranslation(translationInput);
+                        return (
+                          <div>
+                            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                              Complete Translation
+                            </h3>
+                            <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl rounded-xl border-2 border-blue-500/50 p-6">
+                              <div className="flex items-start gap-4">
+                                <div className="flex-1">
+                                  <textarea
+                                    readOnly
+                                    value={result}
+                                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-sm leading-relaxed focus:outline-none resize-none"
+                                    rows={3}
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => copyToClipboard(result)}
+                                  className="flex-shrink-0 mt-1 p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                  title="Copy to clipboard"
+                                >
+                                  <Copy className="w-5 h-5 text-blue-300" />
+                                </button>
                               </div>
-                              <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                                {suggestions[0].confidence.toFixed(0)}%
-                              </div>
-                            </div>
-                          </div>
-                          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                              style={{ width: `${suggestions[0].confidence}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Alternative Matches */}
-                      {suggestions.length > 1 && (
+                              {/* Word-by-word breakdown */}
+                              {wordMatches.length > 0 && (
+                                <div className="mt-6 space-y-3 border-t border-white/10 pt-6">
+                                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    Word Breakdown
+                                  </p>
+                                  {wordMatches.map((match, idx) => (
+                                    <div key={idx} className="space-y-2">
+                                      <div className="flex items-center gap-3 flex-wrap">
+                                        <span className="text-sm font-medium text-white bg-white/10 px-3 py-1 rounded">
+                                          {match.word}
+                                        </span>
+                                        <span className="text-sm text-blue-200">→</span>
+                                        <span className="text-sm font-medium text-blue-300">
+                                          {match.translation}
+                                        </span>
+                                        {match.matches.length > 1 && (
+                                          <span className="text-xs text-slate-400">
+                                            +{match.matches.length - 1} alternatives
+                                          </span>
+                                        )}
+                                      </div>
+                                      {match.matches.length > 1 && (
+                                        <div className="ml-3 space-y-1">
+                                          {match.matches.slice(1, 3).map((alt, altIdx) => (
+                                            <div
+                                              key={altIdx}
+                                              className="flex items-center gap-2 text-xs"
+                                            >
+                                              <span className="text-slate-500">
+                                                {alt.tamil}
+                                              </span>
+                                              <span className="text-slate-600">
+                                                ({alt.confidence.toFixed(0)}%)
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Phrase Suggestions */}
+                      {suggestions.length > 0 && (
                         <div>
                           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                            Other Matches
+                            Phrase Suggestions
                           </h3>
-                          <div className="space-y-2">
-                            {suggestions.slice(1, 4).map((suggestion, idx) => (
-                              <div
-                                key={idx}
-                                className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-white truncate mb-1">
-                                      {suggestion.english}
-                                    </p>
-                                    <p className="text-sm text-purple-200 truncate">
-                                      {suggestion.tamil}
-                                    </p>
+
+                          {/* Primary Suggestion */}
+                          <div>
+                            <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-xl rounded-xl border-2 border-purple-500/50 p-6">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                  <p className="text-base font-semibold text-white mb-2">
+                                    {suggestions[0].english}
+                                  </p>
+                                  <p className="text-lg text-purple-200 font-medium">
+                                    {suggestions[0].tamil}
+                                  </p>
+                                </div>
+                                <div className="ml-6 text-right">
+                                  <div className="text-xs font-semibold text-slate-300 mb-2">
+                                    Confidence
                                   </div>
-                                  <div className="ml-4 text-right flex-shrink-0">
-                                    <div className="text-xl font-bold text-purple-400">
-                                      {suggestion.confidence.toFixed(0)}%
-                                    </div>
+                                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                                    {suggestions[0].confidence.toFixed(0)}%
                                   </div>
                                 </div>
                               </div>
-                            ))}
+                              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
+                                  style={{ width: `${suggestions[0].confidence}%` }}
+                                ></div>
+                              </div>
+                            </div>
                           </div>
+
+                          {/* Alternative Matches */}
+                          {suggestions.length > 1 && (
+                            <div className="mt-4">
+                              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                                Other Matches
+                              </h3>
+                              <div className="space-y-2">
+                                {suggestions.slice(1, 4).map((suggestion, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white truncate mb-1">
+                                          {suggestion.english}
+                                        </p>
+                                        <p className="text-sm text-purple-200 truncate">
+                                          {suggestion.tamil}
+                                        </p>
+                                      </div>
+                                      <div className="ml-4 text-right flex-shrink-0">
+                                        <div className="text-xl font-bold text-purple-400">
+                                          {suggestion.confidence.toFixed(0)}%
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -749,8 +652,7 @@ export default function Index() {
                   {translationInput.trim() && suggestions.length === 0 && (
                     <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                       <p className="text-blue-300 text-sm">
-                        No matching translations found. Try different keywords
-                        from your training data.
+                        No matching translations found. Try different keywords from your training data.
                       </p>
                     </div>
                   )}
@@ -774,7 +676,7 @@ export default function Index() {
                       {(
                         modelState.pairs.reduce(
                           (sum, p) => sum + p.english.split(" ").length,
-                          0,
+                          0
                         ) / modelState.pairs.length
                       ).toFixed(1)}
                     </p>
@@ -809,10 +711,7 @@ export default function Index() {
                   {topWords.length > 0 ? (
                     <div className="space-y-3">
                       {topWords.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between"
-                        >
+                        <div key={idx} className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">
                               {item.word}
@@ -821,7 +720,7 @@ export default function Index() {
                               <div
                                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
                                 style={{
-                                  width: `${(item.count / Math.max(...topWords.map((w) => w.count))) * 100}%`,
+                                  width: `${(item.count / Math.max(...topWords.map(w => w.count))) * 100}%`
                                 }}
                               ></div>
                             </div>
@@ -833,9 +732,7 @@ export default function Index() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-400 text-xs">
-                      Analyzing corpus...
-                    </p>
+                    <p className="text-slate-400 text-xs">Analyzing corpus...</p>
                   )}
                 </div>
               </div>
