@@ -665,13 +665,13 @@ export default function Index() {
 
                                   {wordReplacements.length > 0 && (
                                     <div>
-                                      <p className="text-xs text-slate-400 mb-2">Word Replacements:</p>
+                                      <p className="text-xs text-slate-400 mb-2">Word-by-Word Translations:</p>
                                       <div className="space-y-2">
                                         {wordReplacements.map((replacement, idx) => (
                                           <div key={idx} className="text-xs text-slate-300 flex items-center gap-2">
-                                            <span className="bg-white/10 px-2 py-1 rounded">{replacement.original}</span>
-                                            <span>→</span>
-                                            <span className="bg-blue-500/20 px-2 py-1 rounded text-blue-300 font-medium">{replacement.replacement}</span>
+                                            <span className="bg-white/10 px-2 py-1 rounded">{replacement.replacement}</span>
+                                            <span className="text-slate-600">→</span>
+                                            <span className="bg-blue-500/20 px-2 py-1 rounded text-blue-300 font-medium">{replacement.translatedWord}</span>
                                           </div>
                                         ))}
                                       </div>
