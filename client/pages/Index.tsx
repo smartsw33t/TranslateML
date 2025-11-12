@@ -31,11 +31,6 @@ interface TranslationSuggestion {
   confidence: number;
 }
 
-interface WordMatch {
-  word: string;
-  translation: string;
-  matches: TranslationSuggestion[];
-}
 
 // CONFIGURE YOUR GITHUB CSV URL HERE
 const GITHUB_CSV_URL =
