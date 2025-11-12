@@ -151,27 +151,45 @@ export default function Index() {
   const findIndividualWordTranslation = (word: string): { tamil: string; score: number } | null => {
     if (!isContentWord(word)) return null;
 
-    let bestMatch: { tamil: string; score: number } | null = null;
+    let bestMatch: { tamil: string; score: number; englishWord: string } | null = null;
     let bestScore = 0;
 
     // Search for this word in all corpus phrases
     modelState.pairs.forEach((pair) => {
-      const words = pair.english.toLowerCase().split(/\s+/);
-      words.forEach((corpusWord, idx) => {
+      const englishWords = pair.english.toLowerCase().split(/\s+/);
+      const tamilWords = pair.tamil.split(/\s+/);
+
+      englishWords.forEach((corpusWord, idx) => {
+        // Exact match gets 100%
+        if (word === corpusWord) {
+          bestMatch = {
+            tamil: tamilWords[idx] || word,
+            score: 100,
+            englishWord: corpusWord,
+          };
+          bestScore = 100;
+          return;
+        }
+
+        // Partial match
         const score = calculateSimilarity(word, corpusWord);
-        if (score > bestScore && score >= 30) {
+        if (score > bestScore && score >= 20) {
           bestScore = score;
-          // Get the corresponding Tamil word
-          const tamilWords = pair.tamil.split(/\s+/);
           bestMatch = {
             tamil: tamilWords[idx] || word,
             score: score,
+            englishWord: corpusWord,
           };
         }
       });
     });
 
-    return bestMatch;
+    // If exact match found, return immediately
+    if (bestScore === 100) {
+      return { tamil: bestMatch!.tamil, score: bestMatch!.score };
+    }
+
+    return bestMatch ? { tamil: bestMatch.tamil, score: bestMatch.score } : null;
   };
 
   const buildTemplateTranslation = (input: string): { result: string; templateMatch: TranslationPair | null; confidence: number; wordReplacements: Array<{ wordIndex: number; original: string; replacement: string; translatedWord: string }> } => {
