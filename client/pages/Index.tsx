@@ -178,12 +178,12 @@ export default function Index() {
       inputWords.forEach((word, idx) => {
         const translation = findIndividualWordTranslation(word);
         if (translation) {
-          outputParts.push(translation);
+          outputParts.push(translation.tamil);
           wordReplacements.push({
             wordIndex: idx,
             original: word,
             replacement: word,
-            translatedWord: translation,
+            translatedWord: translation.tamil,
           });
         } else {
           // No translation found, keep original word
@@ -215,19 +215,20 @@ export default function Index() {
       // Try to find individual translation for this word
       const wordTranslation = findIndividualWordTranslation(newWord);
 
-      if (wordTranslation) {
-        replacementTamilWords[idx] = wordTranslation;
+      if (wordTranslation && wordTranslation.tamil !== newWord) {
+        // Found a good translation
+        replacementTamilWords[idx] = wordTranslation.tamil;
         wordReplacements.push({
           wordIndex: idx,
           original: corpusWords[idx],
           replacement: newWord,
-          translatedWord: wordTranslation,
+          translatedWord: wordTranslation.tamil,
         });
       } else if (!isContentWord(newWord)) {
-        // Filler word not found - keep original
+        // Filler word - keep template's tamil translation
         replacementTamilWords[idx] = tamilWords[idx];
       } else {
-        // Content word not found - keep the word as-is
+        // Content word not found in corpus - keep word as-is
         replacementTamilWords[idx] = newWord;
         wordReplacements.push({
           wordIndex: idx,
