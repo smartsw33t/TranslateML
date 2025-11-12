@@ -31,7 +31,6 @@ interface TranslationSuggestion {
   confidence: number;
 }
 
-
 // CONFIGURE YOUR GITHUB CSV URL HERE
 const GITHUB_CSV_URL =
   "https://raw.githubusercontent.com/smartsw33t/corpus/main/English%20Tamil%20Corpus%20Updated%20frequently.csv";
@@ -47,41 +46,226 @@ export default function Index() {
   const [translationInput, setTranslationInput] = useState("");
   const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [topWords, setTopWords] = useState<Array<{ word: string; count: number }>>([]);
+  const [topWords, setTopWords] = useState<
+    Array<{ word: string; count: number }>
+  >([]);
 
   // Auto-refresh every 5 minutes (300000 ms)
   const REFRESH_INTERVAL = 5 * 60 * 1000;
 
   // Common English stop words (fillers that don't need individual translation)
   const stopWords = new Set([
-    "the", "a", "an", "and", "or", "but", "is", "are", "am", "was", "were",
-    "be", "been", "being", "have", "has", "had", "do", "does", "did", "will",
-    "would", "could", "should", "may", "might", "must", "can", "of", "in",
-    "on", "at", "to", "for", "with", "by", "from", "as", "if", "that", "this",
-    "it", "which", "who", "whom", "what", "when", "where", "why", "how", "not",
-    "no", "yes", "i", "you", "he", "she", "we", "they", "me", "him", "her", "us",
-    "them", "my", "your", "his", "her", "its", "our", "their", "what", "all",
-    "each", "every", "both", "some", "any", "few", "more", "most", "other",
-    "such", "so", "than", "too", "very", "just", "only", "own", "same", "then",
-    "now", "here", "there", "about", "above", "after", "again", "against", "any",
-    "because", "before", "being", "below", "between", "both", "during", "each",
-    "few", "further", "had", "has", "have", "having", "he", "her", "here",
-    "hers", "herself", "him", "himself", "his", "how", "i", "if", "in", "into",
-    "is", "it", "its", "itself", "just", "me", "might", "more", "most", "my",
-    "myself", "no", "nor", "not", "of", "off", "on", "only", "or", "other",
-    "our", "ours", "ourselves", "out", "over", "own", "same", "should", "so",
-    "some", "such", "than", "that", "the", "their", "theirs", "them",
-    "themselves", "then", "there", "these", "they", "this", "those", "through",
-    "to", "too", "under", "until", "up", "very", "was", "we", "were", "what",
-    "when", "where", "which", "while", "who", "whom", "why", "with", "you",
-    "your", "yours", "yourself", "yourselves"
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "is",
+    "are",
+    "am",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "must",
+    "can",
+    "of",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "with",
+    "by",
+    "from",
+    "as",
+    "if",
+    "that",
+    "this",
+    "it",
+    "which",
+    "who",
+    "whom",
+    "what",
+    "when",
+    "where",
+    "why",
+    "how",
+    "not",
+    "no",
+    "yes",
+    "i",
+    "you",
+    "he",
+    "she",
+    "we",
+    "they",
+    "me",
+    "him",
+    "her",
+    "us",
+    "them",
+    "my",
+    "your",
+    "his",
+    "her",
+    "its",
+    "our",
+    "their",
+    "what",
+    "all",
+    "each",
+    "every",
+    "both",
+    "some",
+    "any",
+    "few",
+    "more",
+    "most",
+    "other",
+    "such",
+    "so",
+    "than",
+    "too",
+    "very",
+    "just",
+    "only",
+    "own",
+    "same",
+    "then",
+    "now",
+    "here",
+    "there",
+    "about",
+    "above",
+    "after",
+    "again",
+    "against",
+    "any",
+    "because",
+    "before",
+    "being",
+    "below",
+    "between",
+    "both",
+    "during",
+    "each",
+    "few",
+    "further",
+    "had",
+    "has",
+    "have",
+    "having",
+    "he",
+    "her",
+    "here",
+    "hers",
+    "herself",
+    "him",
+    "himself",
+    "his",
+    "how",
+    "i",
+    "if",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "itself",
+    "just",
+    "me",
+    "might",
+    "more",
+    "most",
+    "my",
+    "myself",
+    "no",
+    "nor",
+    "not",
+    "of",
+    "off",
+    "on",
+    "only",
+    "or",
+    "other",
+    "our",
+    "ours",
+    "ourselves",
+    "out",
+    "over",
+    "own",
+    "same",
+    "should",
+    "so",
+    "some",
+    "such",
+    "than",
+    "that",
+    "the",
+    "their",
+    "theirs",
+    "them",
+    "themselves",
+    "then",
+    "there",
+    "these",
+    "they",
+    "this",
+    "those",
+    "through",
+    "to",
+    "too",
+    "under",
+    "until",
+    "up",
+    "very",
+    "was",
+    "we",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "while",
+    "who",
+    "whom",
+    "why",
+    "with",
+    "you",
+    "your",
+    "yours",
+    "yourself",
+    "yourselves",
   ]);
 
   const isContentWord = (word: string): boolean => {
     return !stopWords.has(word.toLowerCase());
   };
 
-  const calculateTemplateSimilarity = (input: string, corpusPhrase: string): { score: number; inputWords: string[]; corpusWords: string[]; diffIndices: number[] } => {
+  const calculateTemplateSimilarity = (
+    input: string,
+    corpusPhrase: string,
+  ): {
+    score: number;
+    inputWords: string[];
+    corpusWords: string[];
+    diffIndices: number[];
+  } => {
     const inputWords = input.toLowerCase().split(/\s+/);
     const corpusWords = corpusPhrase.toLowerCase().split(/\s+/);
 
@@ -109,7 +293,10 @@ export default function Index() {
       });
 
       const baseScore = (matchCount / inputWords.length) * 100;
-      const onlyContentWordDiffs = diffIndices.every(idx => isContentWord(inputWords[idx]) && isContentWord(corpusWords[idx]));
+      const onlyContentWordDiffs = diffIndices.every(
+        (idx) =>
+          isContentWord(inputWords[idx]) && isContentWord(corpusWords[idx]),
+      );
       const score = onlyContentWordDiffs ? Math.max(baseScore, 10) : baseScore;
 
       return { score, inputWords, corpusWords, diffIndices };
@@ -118,20 +305,42 @@ export default function Index() {
     // If lengths differ, try to find common content words
     let commonWords = 0;
     inputWords.forEach((word) => {
-      if (isContentWord(word) && corpusWords.some(cw => cw === word || (isContentWord(cw) && calculateSimilarity(word, cw) > 70))) {
+      if (
+        isContentWord(word) &&
+        corpusWords.some(
+          (cw) =>
+            cw === word ||
+            (isContentWord(cw) && calculateSimilarity(word, cw) > 70),
+        )
+      ) {
         commonWords++;
       }
     });
 
-    const score = (commonWords / Math.max(inputWords.length, corpusWords.length)) * 100;
+    const score =
+      (commonWords / Math.max(inputWords.length, corpusWords.length)) * 100;
     return { score, inputWords, corpusWords, diffIndices: [] };
   };
 
-  const findBestTemplateSentence = (input: string): { match: TranslationPair; similarity: number; diffIndices: number[]; inputWords: string[] } | null => {
-    let bestMatch: { pair: TranslationPair; score: number; inputWords: string[]; corpusWords: string[]; diffIndices: number[] } | null = null;
+  const findBestTemplateSentence = (
+    input: string,
+  ): {
+    match: TranslationPair;
+    similarity: number;
+    diffIndices: number[];
+    inputWords: string[];
+  } | null => {
+    let bestMatch: {
+      pair: TranslationPair;
+      score: number;
+      inputWords: string[];
+      corpusWords: string[];
+      diffIndices: number[];
+    } | null = null;
 
     modelState.pairs.forEach((pair) => {
-      const { score, inputWords, corpusWords, diffIndices } = calculateTemplateSimilarity(input, pair.english);
+      const { score, inputWords, corpusWords, diffIndices } =
+        calculateTemplateSimilarity(input, pair.english);
 
       // Only accept matches with at least 30% similarity to be useful
       if (score >= 30 && (!bestMatch || score > bestMatch.score)) {
@@ -149,10 +358,16 @@ export default function Index() {
     };
   };
 
-  const findIndividualWordTranslation = (word: string): { tamil: string; score: number } | null => {
+  const findIndividualWordTranslation = (
+    word: string,
+  ): { tamil: string; score: number } | null => {
     if (!isContentWord(word)) return null;
 
-    let bestMatch: { tamil: string; score: number; englishWord: string } | null = null;
+    let bestMatch: {
+      tamil: string;
+      score: number;
+      englishWord: string;
+    } | null = null;
     let bestScore = 0;
 
     // Search for this word in all corpus phrases
@@ -190,12 +405,31 @@ export default function Index() {
       return { tamil: bestMatch!.tamil, score: bestMatch!.score };
     }
 
-    return bestMatch ? { tamil: bestMatch.tamil, score: bestMatch.score } : null;
+    return bestMatch
+      ? { tamil: bestMatch.tamil, score: bestMatch.score }
+      : null;
   };
 
-  const buildTemplateTranslation = (input: string): { result: string; templateMatch: TranslationPair | null; confidence: number; wordReplacements: Array<{ wordIndex: number; original: string; replacement: string; translatedWord: string }> } => {
+  const buildTemplateTranslation = (
+    input: string,
+  ): {
+    result: string;
+    templateMatch: TranslationPair | null;
+    confidence: number;
+    wordReplacements: Array<{
+      wordIndex: number;
+      original: string;
+      replacement: string;
+      translatedWord: string;
+    }>;
+  } => {
     if (!input.trim()) {
-      return { result: "", templateMatch: null, confidence: 0, wordReplacements: [] };
+      return {
+        result: "",
+        templateMatch: null,
+        confidence: 0,
+        wordReplacements: [],
+      };
     }
 
     const templateMatch = findBestTemplateSentence(input);
@@ -204,7 +438,12 @@ export default function Index() {
       // No template match found - try to translate word-by-word
       const inputWords = input.toLowerCase().split(/\s+/);
       const outputParts: string[] = [];
-      const wordReplacements: Array<{ wordIndex: number; original: string; replacement: string; translatedWord: string }> = [];
+      const wordReplacements: Array<{
+        wordIndex: number;
+        original: string;
+        replacement: string;
+        translatedWord: string;
+      }> = [];
 
       inputWords.forEach((word, idx) => {
         const translation = findIndividualWordTranslation(word);
@@ -234,7 +473,12 @@ export default function Index() {
     const { match, diffIndices, inputWords } = templateMatch;
     const tamilWords = match.tamil.split(/\s+/);
     const corpusWords = match.english.toLowerCase().split(/\s+/);
-    const wordReplacements: Array<{ wordIndex: number; original: string; replacement: string; translatedWord: string }> = [];
+    const wordReplacements: Array<{
+      wordIndex: number;
+      original: string;
+      replacement: string;
+      translatedWord: string;
+    }> = [];
 
     // Start with template translation
     const replacementTamilWords = [...tamilWords];
@@ -282,9 +526,7 @@ export default function Index() {
     const wordCount: Record<string, number> = {};
 
     pairs.forEach((pair) => {
-      const words = pair.english
-        .toLowerCase()
-        .match(/\b\w+\b/g) || [];
+      const words = pair.english.toLowerCase().match(/\b\w+\b/g) || [];
 
       words.forEach((word) => {
         if (!stopWords.has(word) && word.length > 1) {
@@ -337,7 +579,6 @@ export default function Index() {
 
     setSuggestions(scored);
   };
-
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -403,10 +644,7 @@ export default function Index() {
             }
 
             const pairs: TranslationPair[] = csvData
-              .filter(
-                (row) =>
-                  row[englishKey]?.trim() && row[tamilKey]?.trim()
-              )
+              .filter((row) => row[englishKey]?.trim() && row[tamilKey]?.trim())
               .map((row) => ({
                 english: row[englishKey].trim(),
                 tamil: row[tamilKey].trim(),
@@ -622,7 +860,11 @@ export default function Index() {
                   </h2>
                   <p className="text-red-300 text-sm">{modelState.error}</p>
                   <p className="text-slate-400 text-xs mt-4">
-                    Make sure you've updated the <code className="bg-white/10 px-2 py-1 rounded">GITHUB_CSV_URL</code> constant in the code with your actual CSV URL.
+                    Make sure you've updated the{" "}
+                    <code className="bg-white/10 px-2 py-1 rounded">
+                      GITHUB_CSV_URL
+                    </code>{" "}
+                    constant in the code with your actual CSV URL.
                   </p>
                 </div>
               </div>
@@ -655,7 +897,12 @@ export default function Index() {
                     <div className="mt-8 space-y-6">
                       {/* Template-Based Translation Output */}
                       {(() => {
-                        const { result, templateMatch, confidence, wordReplacements } = buildTemplateTranslation(translationInput);
+                        const {
+                          result,
+                          templateMatch,
+                          confidence,
+                          wordReplacements,
+                        } = buildTemplateTranslation(translationInput);
                         return (
                           <div>
                             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
@@ -693,22 +940,41 @@ export default function Index() {
                                   </div>
 
                                   <div className="p-3 bg-white/5 rounded-lg">
-                                    <p className="text-xs text-slate-400 mb-2">Matched Phrase:</p>
-                                    <p className="text-sm text-white mb-1">{templateMatch.english}</p>
-                                    <p className="text-sm text-blue-200">{templateMatch.tamil}</p>
+                                    <p className="text-xs text-slate-400 mb-2">
+                                      Matched Phrase:
+                                    </p>
+                                    <p className="text-sm text-white mb-1">
+                                      {templateMatch.english}
+                                    </p>
+                                    <p className="text-sm text-blue-200">
+                                      {templateMatch.tamil}
+                                    </p>
                                   </div>
 
                                   {wordReplacements.length > 0 && (
                                     <div>
-                                      <p className="text-xs text-slate-400 mb-2">Word-by-Word Translations:</p>
+                                      <p className="text-xs text-slate-400 mb-2">
+                                        Word-by-Word Translations:
+                                      </p>
                                       <div className="space-y-2">
-                                        {wordReplacements.map((replacement, idx) => (
-                                          <div key={idx} className="text-xs text-slate-300 flex items-center gap-2">
-                                            <span className="bg-white/10 px-2 py-1 rounded">{replacement.replacement}</span>
-                                            <span className="text-slate-600">→</span>
-                                            <span className="bg-blue-500/20 px-2 py-1 rounded text-blue-300 font-medium">{replacement.translatedWord}</span>
-                                          </div>
-                                        ))}
+                                        {wordReplacements.map(
+                                          (replacement, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="text-xs text-slate-300 flex items-center gap-2"
+                                            >
+                                              <span className="bg-white/10 px-2 py-1 rounded">
+                                                {replacement.replacement}
+                                              </span>
+                                              <span className="text-slate-600">
+                                                →
+                                              </span>
+                                              <span className="bg-blue-500/20 px-2 py-1 rounded text-blue-300 font-medium">
+                                                {replacement.translatedWord}
+                                              </span>
+                                            </div>
+                                          ),
+                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -718,7 +984,8 @@ export default function Index() {
                               {!result && (
                                 <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                                   <p className="text-yellow-300 text-xs">
-                                    No template match found. Try phrases similar to your corpus.
+                                    No template match found. Try phrases similar
+                                    to your corpus.
                                   </p>
                                 </div>
                               )}
@@ -758,7 +1025,9 @@ export default function Index() {
                               <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                                  style={{ width: `${suggestions[0].confidence}%` }}
+                                  style={{
+                                    width: `${suggestions[0].confidence}%`,
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -771,28 +1040,30 @@ export default function Index() {
                                 Other Matches
                               </h3>
                               <div className="space-y-2">
-                                {suggestions.slice(1, 4).map((suggestion, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white truncate mb-1">
-                                          {suggestion.english}
-                                        </p>
-                                        <p className="text-sm text-purple-200 truncate">
-                                          {suggestion.tamil}
-                                        </p>
-                                      </div>
-                                      <div className="ml-4 text-right flex-shrink-0">
-                                        <div className="text-xl font-bold text-purple-400">
-                                          {suggestion.confidence.toFixed(0)}%
+                                {suggestions
+                                  .slice(1, 4)
+                                  .map((suggestion, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors group"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium text-white truncate mb-1">
+                                            {suggestion.english}
+                                          </p>
+                                          <p className="text-sm text-purple-200 truncate">
+                                            {suggestion.tamil}
+                                          </p>
+                                        </div>
+                                        <div className="ml-4 text-right flex-shrink-0">
+                                          <div className="text-xl font-bold text-purple-400">
+                                            {suggestion.confidence.toFixed(0)}%
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  ))}
                               </div>
                             </div>
                           )}
@@ -804,7 +1075,8 @@ export default function Index() {
                   {translationInput.trim() && suggestions.length === 0 && (
                     <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                       <p className="text-blue-300 text-sm">
-                        No matching translations found. Try different keywords from your training data.
+                        No matching translations found. Try different keywords
+                        from your training data.
                       </p>
                     </div>
                   )}
@@ -828,7 +1100,7 @@ export default function Index() {
                       {(
                         modelState.pairs.reduce(
                           (sum, p) => sum + p.english.split(" ").length,
-                          0
+                          0,
                         ) / modelState.pairs.length
                       ).toFixed(1)}
                     </p>
@@ -863,7 +1135,10 @@ export default function Index() {
                   {topWords.length > 0 ? (
                     <div className="space-y-3">
                       {topWords.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between">
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between"
+                        >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">
                               {item.word}
@@ -872,7 +1147,7 @@ export default function Index() {
                               <div
                                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
                                 style={{
-                                  width: `${(item.count / Math.max(...topWords.map(w => w.count))) * 100}%`
+                                  width: `${(item.count / Math.max(...topWords.map((w) => w.count))) * 100}%`,
                                 }}
                               ></div>
                             </div>
@@ -884,7 +1159,9 @@ export default function Index() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-400 text-xs">Analyzing corpus...</p>
+                    <p className="text-slate-400 text-xs">
+                      Analyzing corpus...
+                    </p>
                   )}
                 </div>
               </div>
